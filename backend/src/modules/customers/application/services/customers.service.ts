@@ -1,35 +1,28 @@
-import { Injectable, ConflictException } from '@nestjs/common';
-import { PrismaService } from '../../../../core/prisma/prisma.service.js';
+// src/modules/customers/application/services/customers.service.ts
+import { Injectable, ConflictException, Inject } from '@nestjs/common';
 import { CreateCustomerDto } from '../dtos/create-customer.dto.js';
 import { SearchCustomerDto } from '../dtos/search-customer.dto.js';
+import { CUSTOMER_REPOSITORY } from '../../domain/repositories/customer.repository.interface.js';
+import type { ICustomerRepository } from '../../domain/repositories/customer.repository.interface.js';
 
 @Injectable()
 export class CustomersService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        @Inject(CUSTOMER_REPOSITORY)
+        private readonly customerRepository: ICustomerRepository,
+    ) { }
 
     async create(dto: CreateCustomerDto) {
-        const existing = await this.prisma.customer.findUnique({
-            where: { documentNumber: dto.documentNumber },
-        });
+        const existing = await this.customerRepository.findByDocument(dto.documentNumber);
 
         if (existing) {
             throw new ConflictException('Ya existe un cliente con este documento');
         }
 
-        return this.prisma.customer.create({
-            data: dto,
-        });
+        return this.customerRepository.create(dto);
     }
 
     async search(dto: SearchCustomerDto) {
-        return this.prisma.customer.findMany({
-            where: {
-                OR: [
-                    { documentNumber: { contains: dto.query } },
-                    { name: { contains: dto.query, mode: 'insensitive' } },
-                ],
-            },
-            take: 10,
-        });
+        return this.customerRepository.search(dto.query ?? '');
     }
 }

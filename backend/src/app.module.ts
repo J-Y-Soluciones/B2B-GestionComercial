@@ -1,12 +1,10 @@
+// backend/src/app.module.ts
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-
-// Si definiste la capa infrastructure en Auth:
 import { AuthModule } from './modules/auth/auth.module.js';
-
-// Prisma dentro de modules:
 import { PrismaModule } from './core/prisma/prisma.module.js';
+import { CustomersModule } from './modules/customers/customers.module.js';
 
 @Module({
   imports: [
@@ -19,6 +17,7 @@ import { PrismaModule } from './core/prisma/prisma.module.js';
     ]),
     PrismaModule,
     AuthModule,
+    CustomersModule,
   ],
   providers: [
     {
