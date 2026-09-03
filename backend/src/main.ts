@@ -1,11 +1,21 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module.js';
+import { ValidationPipe } from '@nestjs/common';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.enableCors();
+  // 1. Cabeceras HTTP Seguras
+  app.use(helmet());
+
+  // 2. CORS restringido
+  app.enableCors({
+    origin: 'http://localhost:4200',
+    credentials: true,
+  });
+
+  // 3. Sanitización y validación estricta de DTOs
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -14,8 +24,6 @@ async function bootstrap() {
     }),
   );
 
-  const port = process.env.PORT || 3000;
-  await app.listen(port);
-  console.log(`🚀 Servidor corriendo en: http://localhost:${port}`);
+  await app.listen(3000);
 }
 bootstrap();
