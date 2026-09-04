@@ -1,14 +1,26 @@
 // backend/src/modules/proformas/domain/repositories/proforma.repository.interface.ts
-import type { Proforma, ProformaDetail, ProformaStatusLog, ProformaStatus } from '@prisma/client';
+import { Proforma, ProformaDetail, ProformaStatusLog, Customer, Product, ProformaStatus } from '@prisma/client';
 
-export const PROFORMA_REPOSITORY = Symbol('PROFORMA_REPOSITORY');
-
-export type ProformaWithDetails = Proforma & {
-    details: ProformaDetail[];
-    statusLogs: ProformaStatusLog[];
+export type ProformaDetailWithProduct = ProformaDetail & {
+    product?: Product;
 };
 
-export interface CreateProformaDetailData {
+export type ProformaWithDetails = Proforma & {
+    customer?: Customer;
+    seller?: {
+        id: string;
+        email: string;
+        role?: string;
+    };
+    details: ProformaDetailWithProduct[];
+    statusLogs?: (ProformaStatusLog & {
+        changedBy?: {
+            email: string;
+        };
+    })[];
+};
+
+export interface CreateProformaItemData {
     productId: string;
     quantity: number;
     unitPrice: number;
@@ -23,7 +35,7 @@ export interface CreateProformaData {
     totalAmount: number;
     status: ProformaStatus;
     expiresAt: Date;
-    details: CreateProformaDetailData[];
+    details: CreateProformaItemData[];
 }
 
 export interface ChangeStatusData {
@@ -37,6 +49,8 @@ export interface SearchProformaFilters {
     sellerId?: string;
     status?: ProformaStatus;
 }
+
+export const PROFORMA_REPOSITORY = Symbol('PROFORMA_REPOSITORY');
 
 export interface IProformaRepository {
     findById(id: string): Promise<ProformaWithDetails | null>;

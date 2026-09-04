@@ -14,22 +14,32 @@ import type { Prisma } from '@prisma/client';
 export class PrismaProformaRepository implements IProformaRepository {
     constructor(private readonly prisma: PrismaService) { }
 
-    async findById(id: string): Promise<any | null> {
-        return this.prisma.proforma.findUnique({
-            where: { id },
+    private readonly defaultIncludes = {
+        customer: true,
+        seller: {
+            select: { id: true, email: true, role: true },
+        },
+        details: {
             include: {
-                customer: true,
-                seller: {
-                    select: { id: true, email: true },
-                },
-                details: {
-                    include: {
-                        product: true,
-                    },
-                },
-                statusLogs: { orderBy: { createdAt: 'desc' } },
+                product: true,
             },
+        },
+        statusLogs: {
+            include: {
+                changedBy: {
+                    select: { email: true },
+                },
+            },
+            orderBy: { createdAt: 'desc' as const },
+        },
+    };
+
+    async findById(id: string): Promise<ProformaWithDetails | null> {
+        const result = await this.prisma.proforma.findUnique({
+            where: { id },
+            include: this.defaultIncludes,
         });
+        return result as unknown as ProformaWithDetails | null;
     }
 
     async findAll(filters: SearchProformaFilters): Promise<ProformaWithDetails[]> {
@@ -39,14 +49,13 @@ export class PrismaProformaRepository implements IProformaRepository {
             ...(filters.status && { status: filters.status }),
         };
 
-        return this.prisma.proforma.findMany({
+        const results = await this.prisma.proforma.findMany({
             where,
-            include: {
-                details: true,
-                statusLogs: { orderBy: { createdAt: 'desc' }, take: 1 },
-            },
+            include: this.defaultIncludes,
             orderBy: { createdAt: 'desc' },
         });
+
+        return results as unknown as ProformaWithDetails[];
     }
 
     async create(data: CreateProformaData): Promise<ProformaWithDetails> {
@@ -76,12 +85,9 @@ export class PrismaProformaRepository implements IProformaRepository {
                         },
                     },
                 },
-                include: {
-                    details: true,
-                    statusLogs: true,
-                },
+                include: this.defaultIncludes,
             });
-            return proforma;
+            return proforma as unknown as ProformaWithDetails;
         });
     }
 
@@ -99,12 +105,9 @@ export class PrismaProformaRepository implements IProformaRepository {
                         },
                     },
                 },
-                include: {
-                    details: true,
-                    statusLogs: { orderBy: { createdAt: 'desc' } },
-                },
+                include: this.defaultIncludes,
             });
-            return proforma;
+            return proforma as unknown as ProformaWithDetails;
         });
     }
 

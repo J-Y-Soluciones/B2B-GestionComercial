@@ -1,17 +1,41 @@
-// src/app/core/services/auth.service.ts
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 
+export interface UserModulePermission {
+    moduleCode: string;
+    name: string;
+    path: string;
+    icon: string | null;
+    canCreate: boolean;
+    canRead: boolean;
+    canUpdate: boolean;
+    canDelete: boolean;
+}
+
+export interface UserProfile {
+    id: string;
+    name: string;
+}
+
+export interface AuthenticatedUser {
+    id: string;
+    email: string;
+    role: string;
+    profile: UserProfile | null;
+    modules: UserModulePermission[];
+}
+
 export interface AuthResponse {
     accessToken: string;
+    user: AuthenticatedUser;
 }
 
 export interface MessageResponse {
     message: string;
 }
 
-export interface JwtPayload {
+interface JwtRawPayload {
     sub: string;
     email: string;
     role: string;
@@ -26,15 +50,19 @@ export class AuthService {
     private readonly http = inject(HttpClient);
     private readonly API_URL = 'http://localhost:3000/auth';
 
-    public currentUser = signal<JwtPayload | null>(null);
+    public currentUser = signal<AuthenticatedUser | null>(null);
+    public token = signal<string | null>(null);
+
+    public isAuthenticated = computed(() => !!this.currentUser() && !!this.token());
+    public authorizedModules = computed<UserModulePermission[]>(() => this.currentUser()?.modules ?? []);
 
     constructor() {
-        this.loadTokenFromStorage();
+        this.loadSessionFromStorage();
     }
 
     public login(credentials: Record<'email' | 'password', string>): Observable<AuthResponse> {
         return this.http.post<AuthResponse>(`${this.API_URL}/login`, credentials).pipe(
-            tap((response) => this.handleAuthSuccess(response.accessToken))
+            tap((response) => this.handleAuthSuccess(response))
         );
     }
 
@@ -48,34 +76,42 @@ export class AuthService {
 
     public logout(): void {
         localStorage.removeItem('accessToken');
+        localStorage.removeItem('userData');
+        this.token.set(null);
         this.currentUser.set(null);
     }
 
-    private handleAuthSuccess(token: string): void {
-        localStorage.setItem('accessToken', token);
-        this.decodeAndSetUser(token);
+    private handleAuthSuccess(response: AuthResponse): void {
+        localStorage.setItem('accessToken', response.accessToken);
+        localStorage.setItem('userData', JSON.stringify(response.user));
+        this.token.set(response.accessToken);
+        this.currentUser.set(response.user);
     }
 
-    private loadTokenFromStorage(): void {
+    private loadSessionFromStorage(): void {
         const token = localStorage.getItem('accessToken');
-        if (token) {
-            this.decodeAndSetUser(token);
-        }
-    }
+        const userData = localStorage.getItem('userData');
 
-    private decodeAndSetUser(token: string): void {
+        if (!token || !userData) {
+            this.logout();
+            return;
+        }
+
         try {
             const payloadBase64 = token.split('.')[1];
+            if (!payloadBase64) throw new Error('Token inválido');
+
             const decodedJson = atob(payloadBase64);
-            const payload: JwtPayload = JSON.parse(decodedJson);
+            const payload: JwtRawPayload = JSON.parse(decodedJson);
 
             if (payload.exp * 1000 < Date.now()) {
                 this.logout();
-            } else {
-                this.currentUser.set(payload);
+                return;
             }
-        } catch (error) {
-            console.error('Error decodificando el token JWT', error);
+
+            this.token.set(token);
+            this.currentUser.set(JSON.parse(userData));
+        } catch {
             this.logout();
         }
     }

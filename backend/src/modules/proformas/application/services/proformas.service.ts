@@ -101,10 +101,7 @@ export class ProformaService {
     }
 
     async generatePdf(id: string): Promise<{ buffer: Buffer; fileName: string }> {
-        const proforma: any = await this.proformaRepository.findById(id);
-        if (!proforma) {
-            throw new NotFoundException('Proforma no encontrada');
-        }
+        const proforma = await this.findById(id);
 
         const pdfData = {
             code: proforma.code,
@@ -113,9 +110,9 @@ export class ProformaService {
             customer: {
                 name: proforma.customer?.name ?? 'Cliente Desconocido',
                 documentNumber: proforma.customer?.documentNumber ?? '-',
-                phone: proforma.customer?.phone,
-                email: proforma.customer?.email,
-                address: proforma.customer?.address,
+                phone: proforma.customer?.phone ?? undefined,
+                email: proforma.customer?.email ?? undefined,
+                address: proforma.customer?.address ?? undefined,
             },
             seller: {
                 email: proforma.seller?.email ?? '-',

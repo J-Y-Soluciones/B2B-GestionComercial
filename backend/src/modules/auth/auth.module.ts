@@ -1,3 +1,4 @@
+//src/modules/auth/auth.module.ts
 import { Module, Global } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';

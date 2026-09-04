@@ -1,11 +1,11 @@
 // backend/prisma/seed.ts
-import { PrismaClient, Prisma, Role, CustomerType } from '@prisma/client';
+import { PrismaClient, Prisma, Role, CustomerType, ProformaStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main(): Promise<void> {
-    console.log('Iniciando seeding con RBAC dinámico e inventario multiproveedor...');
+    console.log('Iniciando seeding con RBAC dinámico, inventario y proformas de prueba...');
 
     // 1. Limpieza en orden estricto de claves foráneas
     await prisma.passwordResetToken.deleteMany();
@@ -35,53 +35,71 @@ async function main(): Promise<void> {
     const modApprovals = await prisma.module.create({
         data: { name: 'Aprobaciones', code: 'APPROVALS', path: '/approvals', icon: 'check-circle' },
     });
+    const modUsers = await prisma.module.create({
+        data: { name: 'Usuarios y Perfiles', code: 'USERS', path: '/users', icon: 'shield' },
+    });
 
     // 3. Perfiles (Profiles)
     const profileAdmin = await prisma.profile.create({
         data: { name: 'Administrador', description: 'Acceso total y configuración de la tienda' },
     });
     const profileManager = await prisma.profile.create({
-        data: { name: 'Gerente', description: 'Supervisión de almacén y aprobación de precio 3' },
+        data: { name: 'Gerente Comercial', description: 'Supervisión de almacén y aprobación de precio 3' },
     });
     const profileSeller = await prisma.profile.create({
         data: { name: 'Vendedor', description: 'Emisión de proformas y registro de clientes' },
     });
+    const profileWarehouse = await prisma.profile.create({
+        data: { name: 'Almacén', description: 'Gestión y consulta de stock disponible' },
+    });
 
     // 4. Asignación de Permisos (ProfileModule)
-    const allModules = [modProformas, modCatalog, modCustomers, modApprovals];
+    const allModules = [modProformas, modCatalog, modCustomers, modApprovals, modUsers];
+
     for (const m of allModules) {
         await prisma.profileModule.create({
             data: { profileId: profileAdmin.id, moduleId: m.id, canCreate: true, canRead: true, canUpdate: true, canDelete: true },
         });
+    }
+
+    for (const m of [modProformas, modCatalog, modCustomers, modApprovals]) {
         await prisma.profileModule.create({
             data: { profileId: profileManager.id, moduleId: m.id, canCreate: true, canRead: true, canUpdate: true, canDelete: true },
         });
     }
 
-    // Permisos para Vendedor
     for (const m of [modProformas, modCatalog, modCustomers]) {
         await prisma.profileModule.create({
             data: { profileId: profileSeller.id, moduleId: m.id, canCreate: true, canRead: true, canUpdate: false, canDelete: false },
         });
     }
 
-    // 5. Usuarios Base con dominio comercial de la tienda
-    const defaultPassword = await bcrypt.hash('Vortex2024!', 10);
-    await prisma.user.createMany({
-        data: [
-            { email: 'admin@repuestos.com', passwordHash: defaultPassword, role: Role.ADMIN, profileId: profileAdmin.id, isActive: true },
-            { email: 'gerente@repuestos.com', passwordHash: defaultPassword, role: Role.MANAGER, profileId: profileManager.id, isActive: true },
-            { email: 'vendedor@repuestos.com', passwordHash: defaultPassword, role: Role.SELLER, profileId: profileSeller.id, isActive: true },
-            { email: 'almacen@repuestos.com', passwordHash: defaultPassword, role: Role.WAREHOUSE, profileId: null, isActive: true },
-        ],
+    await prisma.profileModule.create({
+        data: { profileId: profileWarehouse.id, moduleId: modCatalog.id, canCreate: false, canRead: true, canUpdate: true, canDelete: false },
     });
 
-    // 6. Clientes
-    await prisma.customer.createMany({
-        data: [
-            { type: CustomerType.NATURAL, documentNumber: '71234567', name: 'Juan Pérez', email: 'juan.perez@empresa.com', phone: '987654321' },
-            { type: CustomerType.BUSINESS, documentNumber: '20123456789', name: 'Transportes del Norte SAC', email: 'logistica@transportesnorte.com', phone: '014445555', address: 'Av. Los Motores 123, Lima' },
-        ],
+    // 5. Usuarios Base
+    const defaultPassword = await bcrypt.hash('Vortex2024!', 10);
+
+    const userAdmin = await prisma.user.create({
+        data: { email: 'admin@repuestos.com', passwordHash: defaultPassword, role: Role.ADMIN, profileId: profileAdmin.id, isActive: true },
+    });
+    const userManager = await prisma.user.create({
+        data: { email: 'gerente@repuestos.com', passwordHash: defaultPassword, role: Role.MANAGER, profileId: profileManager.id, isActive: true },
+    });
+    const userSeller = await prisma.user.create({
+        data: { email: 'vendedor@repuestos.com', passwordHash: defaultPassword, role: Role.SELLER, profileId: profileSeller.id, isActive: true },
+    });
+    await prisma.user.create({
+        data: { email: 'almacen@repuestos.com', passwordHash: defaultPassword, role: Role.WAREHOUSE, profileId: profileWarehouse.id, isActive: true },
+    });
+
+    // 6. Clientes Base
+    const customerNatural = await prisma.customer.create({
+        data: { type: CustomerType.NATURAL, documentNumber: '71234567', name: 'Juan Pérez', email: 'juan.perez@empresa.com', phone: '987654321', address: 'Jr. Huancavelica 550, Lima' },
+    });
+    const customerBusiness = await prisma.customer.create({
+        data: { type: CustomerType.BUSINESS, documentNumber: '20123456789', name: 'Transportes del Norte SAC', email: 'logistica@transportesnorte.com', phone: '014445555', address: 'Av. Los Motores 123, Lima' },
     });
 
     // 7. Proveedores Base
@@ -107,92 +125,161 @@ async function main(): Promise<void> {
         },
     });
 
-    // 8. Catálogo con Brand, Matriz de 3 Precios y Stock por Proveedor
-    const catalog = [
-        {
-            code: 'BOSCH-PF-01',
+    // 8. Productos, Precios y Stock
+    const p1 = await prisma.product.create({
+        data: {
+            internalCode: 'BOSCH-PF-01',
             name: 'Pastillas de Freno Bosch Delanteras',
             brand: 'Bosch',
-            cat: 'Frenos',
+            category: 'Frenos',
             minStock: 6,
-            p1: 120.0,
-            p2: 105.0,
-            p3: 95.0,
-            stockInfo: {
-                supplierId: supplierBosch.id,
-                sku: 'BOSCH-BP-994',
-                cost: 68.5,
-                qty: 24,
+            isActive: true,
+            priceTiers: {
+                create: [
+                    { tier: 1, price: new Prisma.Decimal(120.0) },
+                    { tier: 2, price: new Prisma.Decimal(105.0) },
+                    { tier: 3, price: new Prisma.Decimal(95.0) },
+                ],
+            },
+            stocks: {
+                create: {
+                    supplierId: supplierBosch.id,
+                    supplierSku: 'BOSCH-BP-994',
+                    stock: 24,
+                    costPrice: new Prisma.Decimal(68.5),
+                },
             },
         },
-        {
-            code: 'FRAM-FA-02',
+    });
+
+    const p2 = await prisma.product.create({
+        data: {
+            internalCode: 'FRAM-FA-02',
             name: 'Filtro de Aceite Blindado Fram',
             brand: 'Fram',
-            cat: 'Filtros',
+            category: 'Filtros',
             minStock: 10,
-            p1: 35.0,
-            p2: 30.0,
-            p3: 25.0,
-            stockInfo: {
-                supplierId: supplierImports.id,
-                sku: 'FRAM-PH-3593A',
-                cost: 16.0,
-                qty: 40,
+            isActive: true,
+            priceTiers: {
+                create: [
+                    { tier: 1, price: new Prisma.Decimal(35.0) },
+                    { tier: 2, price: new Prisma.Decimal(30.0) },
+                    { tier: 3, price: new Prisma.Decimal(25.0) },
+                ],
+            },
+            stocks: {
+                create: {
+                    supplierId: supplierImports.id,
+                    supplierSku: 'FRAM-PH-3593A',
+                    stock: 40,
+                    costPrice: new Prisma.Decimal(16.0),
+                },
             },
         },
-        {
-            code: 'NGK-BJ-03',
+    });
+
+    const p3 = await prisma.product.create({
+        data: {
+            internalCode: 'NGK-BJ-03',
             name: 'Bujía Láser Iridium NGK',
             brand: 'NGK',
-            cat: 'Encendido',
+            category: 'Encendido',
             minStock: 8,
-            p1: 45.0,
-            p2: 40.0,
-            p3: 36.0,
-            stockInfo: {
-                supplierId: supplierImports.id,
-                sku: 'NGK-ILZKR7B-11',
-                cost: 21.0,
-                qty: 32,
+            isActive: true,
+            priceTiers: {
+                create: [
+                    { tier: 1, price: new Prisma.Decimal(45.0) },
+                    { tier: 2, price: new Prisma.Decimal(40.0) },
+                    { tier: 3, price: new Prisma.Decimal(36.0) },
+                ],
+            },
+            stocks: {
+                create: {
+                    supplierId: supplierImports.id,
+                    supplierSku: 'NGK-ILZKR7B-11',
+                    stock: 32,
+                    costPrice: new Prisma.Decimal(21.0),
+                },
             },
         },
-    ];
+    });
 
-    for (const item of catalog) {
-        const prod = await prisma.product.create({
-            data: {
-                internalCode: item.code,
-                name: item.name,
-                brand: item.brand,
-                category: item.cat,
-                minStock: item.minStock,
-                isActive: true,
+    // 9. Proformas de Prueba (PENDING_APPROVAL con Tier 3)
+    const expiresToday = new Date();
+    expiresToday.setHours(expiresToday.getHours() + 18);
+
+    const expiresTomorrow = new Date();
+    expiresTomorrow.setDate(expiresTomorrow.getDate() + 2);
+
+    // Proforma 1
+    const proforma1 = await prisma.proforma.create({
+        data: {
+            code: 'PROF-2026-0012',
+            customerId: customerBusiness.id,
+            sellerId: userSeller.id,
+            totalAmount: new Prisma.Decimal(1360.00),
+            status: ProformaStatus.PENDING_APPROVAL,
+            expiresAt: expiresToday,
+            details: {
+                create: [
+                    {
+                        productId: p1.id,
+                        quantity: 10,
+                        unitPrice: new Prisma.Decimal(95.0),
+                        priceTier: 3,
+                        subtotal: new Prisma.Decimal(950.0),
+                    },
+                    {
+                        productId: p3.id,
+                        quantity: 10,
+                        unitPrice: new Prisma.Decimal(36.0),
+                        priceTier: 3,
+                        subtotal: new Prisma.Decimal(360.0),
+                    },
+                ],
             },
-        });
-
-        // Niveles de precio de venta
-        await prisma.priceTier.createMany({
-            data: [
-                { productId: prod.id, tier: 1, price: new Prisma.Decimal(item.p1) },
-                { productId: prod.id, tier: 2, price: new Prisma.Decimal(item.p2) },
-                { productId: prod.id, tier: 3, price: new Prisma.Decimal(item.p3) },
-            ],
-        });
-
-        // Inventario y costo asignado al proveedor
-        await prisma.supplierProductStock.create({
-            data: {
-                productId: prod.id,
-                supplierId: item.stockInfo.supplierId,
-                supplierSku: item.stockInfo.sku,
-                stock: item.stockInfo.qty,
-                costPrice: new Prisma.Decimal(item.stockInfo.cost),
+            statusLogs: {
+                create: {
+                    status: ProformaStatus.PENDING_APPROVAL,
+                    changedById: userSeller.id,
+                    reason: 'Cliente de flota licitó mantenimiento de unidades. Requiere Tier 3.',
+                },
             },
-        });
-    }
+        },
+    });
 
-    console.log('Seeding completado con éxito.');
+    // Proforma 2
+    const proforma2 = await prisma.proforma.create({
+        data: {
+            code: 'PROF-2026-0015',
+            customerId: customerNatural.id,
+            sellerId: userSeller.id,
+            totalAmount: new Prisma.Decimal(760.00),
+            status: ProformaStatus.PENDING_APPROVAL,
+            expiresAt: expiresTomorrow,
+            details: {
+                create: [
+                    {
+                        productId: p1.id,
+                        quantity: 8,
+                        unitPrice: new Prisma.Decimal(95.0),
+                        priceTier: 3,
+                        subtotal: new Prisma.Decimal(760.0),
+                    },
+                ],
+            },
+            statusLogs: {
+                create: {
+                    status: ProformaStatus.PENDING_APPROVAL,
+                    changedById: userSeller.id,
+                    reason: 'Taller independiente solicita descuento Tier 3 por volumen.',
+                },
+            },
+        },
+    });
+
+    console.log(`Seeding completado con éxito:`);
+    console.log(`- 2 Proformas pendientes creadas: ${proforma1.code}, ${proforma2.code}`);
 }
 
 main()
