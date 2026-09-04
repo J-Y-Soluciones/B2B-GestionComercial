@@ -5,6 +5,7 @@ import { ProformaService } from './application/services/proformas.service.js';
 import { PrismaProformaRepository } from './infrastructure/repositories/prisma-proforma.repository.js';
 import { PROFORMA_REPOSITORY } from './domain/repositories/proforma.repository.interface.js';
 import { PrismaModule } from '../../core/prisma/prisma.module.js';
+import { ProformaPdfService } from './application/services/proforma-pdf.service.js';
 
 @Module({
     imports: [PrismaModule],
@@ -15,6 +16,7 @@ import { PrismaModule } from '../../core/prisma/prisma.module.js';
             useClass: PrismaProformaRepository,
         },
         ProformaService,
+        ProformaPdfService,
     ],
     exports: [ProformaService, PROFORMA_REPOSITORY],
 })

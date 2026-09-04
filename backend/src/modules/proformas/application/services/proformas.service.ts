@@ -4,6 +4,7 @@ import type { IProformaRepository, ProformaWithDetails, SearchProformaFilters } 
 import { PROFORMA_REPOSITORY } from '../../domain/repositories/proforma.repository.interface.js';
 import { CreateProformaDto } from '../dtos/create-proforma.dto.js';
 import { ProformaStatus } from '@prisma/client';
+import { ProformaPdfService } from './proforma-pdf.service.js';
 
 @Injectable()
 export class ProformaService {
@@ -12,6 +13,7 @@ export class ProformaService {
     constructor(
         @Inject(PROFORMA_REPOSITORY)
         private readonly proformaRepository: IProformaRepository,
+        private readonly proformaPdfService: ProformaPdfService,
     ) { }
 
     async create(sellerId: string, dto: CreateProformaDto): Promise<ProformaWithDetails> {
@@ -96,5 +98,43 @@ export class ProformaService {
 
     async findAll(filters: SearchProformaFilters): Promise<ProformaWithDetails[]> {
         return this.proformaRepository.findAll(filters);
+    }
+
+    async generatePdf(id: string): Promise<{ buffer: Buffer; fileName: string }> {
+        const proforma: any = await this.proformaRepository.findById(id);
+        if (!proforma) {
+            throw new NotFoundException('Proforma no encontrada');
+        }
+
+        const pdfData = {
+            code: proforma.code,
+            createdAt: proforma.createdAt,
+            expiresAt: proforma.expiresAt,
+            customer: {
+                name: proforma.customer?.name ?? 'Cliente Desconocido',
+                documentNumber: proforma.customer?.documentNumber ?? '-',
+                phone: proforma.customer?.phone,
+                email: proforma.customer?.email,
+                address: proforma.customer?.address,
+            },
+            seller: {
+                email: proforma.seller?.email ?? '-',
+            },
+            details: (proforma.details ?? []).map((d: any) => ({
+                productName: d.product?.name ?? 'Repuesto',
+                internalCode: d.product?.internalCode ?? '-',
+                quantity: d.quantity,
+                unitPrice: Number(d.unitPrice),
+                priceTier: d.priceTier,
+                subtotal: Number(d.subtotal),
+            })),
+            totalAmount: Number(proforma.totalAmount),
+        };
+
+        const buffer = await this.proformaPdfService.generate(pdfData);
+        return {
+            buffer,
+            fileName: `${proforma.code}.pdf`,
+        };
     }
 }

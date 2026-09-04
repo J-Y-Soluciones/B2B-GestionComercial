@@ -14,11 +14,19 @@ import type { Prisma } from '@prisma/client';
 export class PrismaProformaRepository implements IProformaRepository {
     constructor(private readonly prisma: PrismaService) { }
 
-    async findById(id: string): Promise<ProformaWithDetails | null> {
+    async findById(id: string): Promise<any | null> {
         return this.prisma.proforma.findUnique({
             where: { id },
             include: {
-                details: true,
+                customer: true,
+                seller: {
+                    select: { id: true, email: true },
+                },
+                details: {
+                    include: {
+                        product: true,
+                    },
+                },
                 statusLogs: { orderBy: { createdAt: 'desc' } },
             },
         });

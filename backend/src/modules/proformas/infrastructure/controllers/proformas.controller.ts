@@ -1,5 +1,5 @@
 // backend/src/modules/proformas/infrastructure/controllers/proforma.controller.ts
-import { Controller, Post, Body, Get, Query, Param, Patch, UseGuards, ParseUUIDPipe, Req } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, Param, Patch, UseGuards, ParseUUIDPipe, Req, Res } from '@nestjs/common';
 import { ProformaService } from '../../application/services/proformas.service.js';
 import { CreateProformaDto } from '../../application/dtos/create-proforma.dto.js';
 import { RejectProformaDto } from '../../application/dtos/reject-proforma.dto.js';
@@ -8,6 +8,7 @@ import { RolesGuard } from '../../../auth/infrastructure/guards/roles.guard.js';
 import { Roles } from '../../../auth/infrastructure/decorators/roles.decorator.js';
 import { Role, ProformaStatus } from '@prisma/client';
 import type { ProformaWithDetails } from '../../domain/repositories/proforma.repository.interface.js';
+import type { Response } from 'express';
 
 interface AuthenticatedUser {
     id?: string;
@@ -71,5 +72,22 @@ export class ProformaController {
         @Body() dto: RejectProformaDto,
     ): Promise<ProformaWithDetails> {
         return this.proformaService.reject(id, this.extractUserId(req.user), dto.reason);
+    }
+
+    @Get(':id/pdf')
+    @Roles(Role.ADMIN, Role.MANAGER, Role.SELLER, Role.WAREHOUSE)
+    async downloadPdf(
+        @Param('id', new ParseUUIDPipe()) id: string,
+        @Res() res: Response,
+    ): Promise<void> {
+        const { buffer, fileName } = await this.proformaService.generatePdf(id);
+
+        res.set({
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="${fileName}"`,
+            'Content-Length': buffer.length,
+        });
+
+        res.end(buffer);
     }
 }
