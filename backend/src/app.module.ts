@@ -5,6 +5,7 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { PrismaModule } from './core/prisma/prisma.module.js';
 import { CustomersModule } from './modules/customers/customers.module.js';
+import { SuppliersModule } from './modules/suppliers/suppliers.module.js'; // <-- Importado
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { CustomersModule } from './modules/customers/customers.module.js';
     PrismaModule,
     AuthModule,
     CustomersModule,
+    SuppliersModule,
   ],
   providers: [
     {
