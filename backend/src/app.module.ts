@@ -5,7 +5,9 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { PrismaModule } from './core/prisma/prisma.module.js';
 import { CustomersModule } from './modules/customers/customers.module.js';
-import { SuppliersModule } from './modules/suppliers/suppliers.module.js'; // <-- Importado
+import { SuppliersModule } from './modules/suppliers/suppliers.module.js';
+import { ProductsModule } from './modules/products/products.module.js';
+
 
 @Module({
   imports: [
@@ -20,6 +22,7 @@ import { SuppliersModule } from './modules/suppliers/suppliers.module.js'; // <-
     AuthModule,
     CustomersModule,
     SuppliersModule,
+    ProductsModule,
   ],
   providers: [
     {
