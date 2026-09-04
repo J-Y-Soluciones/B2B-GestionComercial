@@ -7,6 +7,7 @@ import { PrismaModule } from './core/prisma/prisma.module.js';
 import { CustomersModule } from './modules/customers/customers.module.js';
 import { SuppliersModule } from './modules/suppliers/suppliers.module.js';
 import { ProductsModule } from './modules/products/products.module.js';
+import { ProformasModule } from './modules/proformas/proformas.module.js';
 
 
 @Module({
@@ -23,6 +24,7 @@ import { ProductsModule } from './modules/products/products.module.js';
     CustomersModule,
     SuppliersModule,
     ProductsModule,
+    ProformasModule,
   ],
   providers: [
     {

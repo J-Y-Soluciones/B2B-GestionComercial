@@ -1,160 +1,100 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../../../core/prisma/prisma.service.js';
+// backend/src/modules/proformas/application/services/proforma.service.ts
+import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
+import type { IProformaRepository, ProformaWithDetails, SearchProformaFilters } from '../../domain/repositories/proforma.repository.interface.js';
+import { PROFORMA_REPOSITORY } from '../../domain/repositories/proforma.repository.interface.js';
 import { CreateProformaDto } from '../dtos/create-proforma.dto.js';
-import { QueryProformaDto } from '../dtos/query-proforma.dto.js';
-import { ProformaStatus, Prisma } from '@prisma/client';
+import { ProformaStatus } from '@prisma/client';
 
 @Injectable()
-export class ProformasService {
-    private readonly PROFORMA_TTL_HOURS = 48;
+export class ProformaService {
+    private readonly TTL_HOURS = 48;
 
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        @Inject(PROFORMA_REPOSITORY)
+        private readonly proformaRepository: IProformaRepository,
+    ) { }
 
-    async createProforma(sellerId: string, dto: CreateProformaDto) {
-        return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-            const customer = await tx.customer.findUnique({ where: { id: dto.customerId } });
-            if (!customer) throw new NotFoundException('Cliente no encontrado');
+    async create(sellerId: string, dto: CreateProformaDto): Promise<ProformaWithDetails> {
+        let totalAmount = 0;
+        let requiresApproval = false;
 
-            let totalAmount = new Prisma.Decimal(0);
-            let requiresManagerApproval = false;
-            const processedDetails = [];
+        const details = dto.items.map((item) => {
+            const subtotal = Number((item.quantity * item.unitPrice).toFixed(2));
+            totalAmount = Number((totalAmount + subtotal).toFixed(2));
 
-            for (const detail of dto.details) {
-                const priceTierRecord = await tx.priceTier.findUnique({
-                    where: {
-                        productId_tier: { productId: detail.productId, tier: detail.priceTier },
-                    },
-                });
-
-                if (!priceTierRecord) {
-                    throw new BadRequestException(
-                        `Precio nivel ${detail.priceTier} no configurado para el producto ${detail.productId}`,
-                    );
-                }
-
-                const unitPrice = priceTierRecord.price;
-                const subtotal = unitPrice.mul(detail.quantity);
-                totalAmount = totalAmount.add(subtotal);
-
-                if (detail.priceTier === 3) {
-                    requiresManagerApproval = true;
-                }
-
-                processedDetails.push({
-                    productId: detail.productId,
-                    quantity: detail.quantity,
-                    unitPrice,
-                    priceTier: detail.priceTier,
-                    subtotal,
-                });
+            if (item.priceTier === 3) {
+                requiresApproval = true;
             }
 
-            const initialStatus = requiresManagerApproval
-                ? ProformaStatus.PENDING_APPROVAL
-                : ProformaStatus.PENDING;
+            return {
+                productId: item.productId,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                priceTier: item.priceTier,
+                subtotal,
+            };
+        });
 
-            const expiresAt = new Date();
-            expiresAt.setHours(expiresAt.getHours() + this.PROFORMA_TTL_HOURS);
+        const status = requiresApproval ? ProformaStatus.PENDING_APPROVAL : ProformaStatus.PENDING;
+        const code = await this.proformaRepository.getNextSequenceCode();
 
-            const code = `PROF-${Date.now().toString().slice(-6)}`;
+        const expiresAt = new Date();
+        expiresAt.setHours(expiresAt.getHours() + this.TTL_HOURS);
 
-            const proforma = await tx.proforma.create({
-                data: {
-                    code,
-                    customerId: dto.customerId,
-                    sellerId,
-                    totalAmount,
-                    status: initialStatus,
-                    expiresAt,
-                    details: {
-                        create: processedDetails,
-                    },
-                    statusLogs: {
-                        create: {
-                            status: initialStatus,
-                            changedById: sellerId,
-                            reason: 'Creación inicial de proforma',
-                        },
-                    },
-                },
-                include: { details: true },
-            });
-
-            return proforma;
+        return this.proformaRepository.create({
+            code,
+            customerId: dto.customerId,
+            sellerId,
+            totalAmount,
+            status,
+            expiresAt,
+            details,
         });
     }
 
-    async approveProforma(id: string, managerId: string) {
-        return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-            const proforma = await tx.proforma.findUnique({ where: { id } });
-            if (!proforma) throw new NotFoundException('Proforma no encontrada');
-            if (proforma.status !== ProformaStatus.PENDING_APPROVAL) {
-                throw new BadRequestException('La proforma no está pendiente de aprobación');
-            }
+    async approve(id: string, managerId: string): Promise<ProformaWithDetails> {
+        const proforma = await this.proformaRepository.findById(id);
+        if (!proforma) {
+            throw new NotFoundException('Proforma no encontrada');
+        }
 
-            return tx.proforma.update({
-                where: { id },
-                data: {
-                    status: ProformaStatus.APPROVED,
-                    statusLogs: {
-                        create: {
-                            status: ProformaStatus.APPROVED,
-                            changedById: managerId,
-                            reason: 'Aprobación gerencial de Precio 3',
-                        },
-                    },
-                },
-            });
+        if (proforma.status !== ProformaStatus.PENDING_APPROVAL) {
+            throw new BadRequestException('La proforma no está pendiente de aprobación');
+        }
+
+        return this.proformaRepository.changeStatus(id, {
+            status: ProformaStatus.APPROVED,
+            changedById: managerId,
+            reason: 'Aprobación gerencial de Precio 3',
         });
     }
 
-    async rejectProforma(id: string, managerId: string, reason: string) {
-        return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-            const proforma = await tx.proforma.findUnique({ where: { id } });
-            if (!proforma) throw new NotFoundException('Proforma no encontrada');
-            if (proforma.status !== ProformaStatus.PENDING_APPROVAL) {
-                throw new BadRequestException('La proforma no está pendiente de aprobación');
-            }
+    async reject(id: string, managerId: string, reason: string): Promise<ProformaWithDetails> {
+        const proforma = await this.proformaRepository.findById(id);
+        if (!proforma) {
+            throw new NotFoundException('Proforma no encontrada');
+        }
 
-            return tx.proforma.update({
-                where: { id },
-                data: {
-                    status: ProformaStatus.REJECTED,
-                    statusLogs: {
-                        create: {
-                            status: ProformaStatus.REJECTED,
-                            changedById: managerId,
-                            reason,
-                        },
-                    },
-                },
-            });
+        if (proforma.status !== ProformaStatus.PENDING_APPROVAL) {
+            throw new BadRequestException('La proforma no está pendiente de aprobación');
+        }
+
+        return this.proformaRepository.changeStatus(id, {
+            status: ProformaStatus.REJECTED,
+            changedById: managerId,
+            reason,
         });
     }
 
-    async findAll(query: QueryProformaDto) {
-        const { page = 1, limit = 10, status, customerId } = query;
-        const skip = (page - 1) * limit;
+    async findById(id: string): Promise<ProformaWithDetails> {
+        const proforma = await this.proformaRepository.findById(id);
+        if (!proforma) {
+            throw new NotFoundException('Proforma no encontrada');
+        }
+        return proforma;
+    }
 
-        const where: Prisma.ProformaWhereInput = {
-            ...(status && { status }),
-            ...(customerId && { customerId }),
-        };
-
-        const [data, total] = await Promise.all([
-            this.prisma.proforma.findMany({
-                where,
-                skip,
-                take: limit,
-                orderBy: { createdAt: 'desc' },
-                include: { customer: true, seller: { select: { email: true } } },
-            }),
-            this.prisma.proforma.count({ where }),
-        ]);
-
-        return {
-            data,
-            meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
-        };
+    async findAll(filters: SearchProformaFilters): Promise<ProformaWithDetails[]> {
+        return this.proformaRepository.findAll(filters);
     }
 }
