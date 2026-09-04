@@ -1,7 +1,8 @@
+// src/modules/auth/infrastructure/repositories/prisma-user.repository.ts
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../core/prisma/prisma.service.js';
-import { IUserRepository, UserWithProfile } from '../../domain/repositories/user.repository.interface.js';
-import { User, PasswordResetToken } from '@prisma/client';
+import type { IUserRepository, UserWithProfile } from '../../domain/repositories/user.repository.interface.js';
+import type { PasswordResetToken } from '@prisma/client';
 
 @Injectable()
 export class PrismaUserRepository implements IUserRepository {
@@ -24,32 +25,22 @@ export class PrismaUserRepository implements IUserRepository {
         });
     }
 
-    async findById(id: string): Promise<User | null> {
-        return this.prisma.user.findUnique({
-            where: { id },
-        });
-    }
-
-    async updatePassword(userId: string, newPasswordHash: string): Promise<void> {
-        await this.prisma.user.update({
-            where: { id: userId },
-            data: { passwordHash: newPasswordHash },
-        });
-    }
-
     async createResetToken(userId: string, token: string, expiresAt: Date): Promise<PasswordResetToken> {
         return this.prisma.passwordResetToken.create({
-            data: {
-                userId,
-                token,
-                expiresAt,
-            },
+            data: { userId, token, expiresAt },
         });
     }
 
     async findResetToken(token: string): Promise<PasswordResetToken | null> {
         return this.prisma.passwordResetToken.findUnique({
             where: { token },
+        });
+    }
+
+    async updatePassword(userId: string, passwordHash: string): Promise<void> {
+        await this.prisma.user.update({
+            where: { id: userId },
+            data: { passwordHash },
         });
     }
 

@@ -6,16 +6,16 @@ import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
 interface LoginForm {
-    email: FormControl<string | null>;
-    password: FormControl<string | null>;
-    remember: FormControl<boolean | null>;
+  email: FormControl<string | null>;
+  password: FormControl<string | null>;
+  remember: FormControl<boolean | null>;
 }
 
 @Component({
-    selector: 'app-login',
-    standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, RouterModule],
-    template: `
+  selector: 'app-login',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  template: `
     <div class="min-h-screen w-full flex flex-col lg:flex-row bg-white font-sans overflow-hidden">
       
       <!-- Mobile Header -->
@@ -160,55 +160,56 @@ interface LoginForm {
       </main>
     </div>
   `,
-    styles: [`
+  styles: [`
     .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
   `]
 })
 export class LoginComponent {
-    private readonly fb = inject(FormBuilder);
-    private readonly router = inject(Router);
-    private readonly authService = inject(AuthService);
+  private readonly fb = inject(FormBuilder);
+  private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
 
-    public showPassword = signal(false);
-    public isLoading = signal(false);
-    public errorMessage = signal<string | null>(null);
+  public showPassword = signal(false);
+  public isLoading = signal(false);
+  public errorMessage = signal<string | null>(null);
 
-    public loginForm = this.fb.group<LoginForm>({
-        email: this.fb.control('', [Validators.required, Validators.email]),
-        password: this.fb.control('', [Validators.required, Validators.minLength(6)]),
-        remember: this.fb.control(false)
+  public loginForm = this.fb.group<LoginForm>({
+    email: this.fb.control('', [Validators.required, Validators.email]),
+    password: this.fb.control('', [Validators.required, Validators.minLength(6)]),
+    remember: this.fb.control(false)
+  });
+
+  public togglePassword(): void {
+    this.showPassword.update(v => !v);
+  }
+
+  public isFieldInvalid(field: keyof LoginForm): boolean {
+    const control = this.loginForm.get(field);
+    return !!(control && control.invalid && (control.dirty || control.touched));
+  }
+
+  public onSubmit(): void {
+    if (this.loginForm.invalid) {
+      this.loginForm.markAllAsTouched();
+      return;
+    }
+
+    this.isLoading.set(true);
+    this.errorMessage.set(null);
+
+    const { email, password } = this.loginForm.getRawValue();
+
+    // src/app/features/auth/login/login.component.ts (dentro de onSubmit)
+    this.authService.login({ email: email!, password: password! }).subscribe({
+      next: () => {
+        this.isLoading.set(false);
+        this.router.navigate(['/approvals']); // <-- Redirigir a la ruta que sí está configurada
+      },
+      error: (err) => {
+        this.isLoading.set(false);
+        this.errorMessage.set(err.error?.message || 'Credenciales incorrectas o usuario inactivo.');
+      }
     });
-
-    public togglePassword(): void {
-        this.showPassword.update(v => !v);
-    }
-
-    public isFieldInvalid(field: keyof LoginForm): boolean {
-        const control = this.loginForm.get(field);
-        return !!(control && control.invalid && (control.dirty || control.touched));
-    }
-
-    public onSubmit(): void {
-        if (this.loginForm.invalid) {
-            this.loginForm.markAllAsTouched();
-            return;
-        }
-
-        this.isLoading.set(true);
-        this.errorMessage.set(null);
-
-        const { email, password } = this.loginForm.getRawValue();
-
-        this.authService.login({ email: email!, password: password! }).subscribe({
-            next: () => {
-                this.isLoading.set(false);
-                this.router.navigate(['/dashboard']);
-            },
-            error: (err) => {
-                this.isLoading.set(false);
-                this.errorMessage.set(err.error?.message || 'Credenciales incorrectas o usuario inactivo.');
-            }
-        });
-    }
+  }
 }

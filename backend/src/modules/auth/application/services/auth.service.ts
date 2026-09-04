@@ -1,3 +1,4 @@
+// backend/src/modules/auth/application/services/auth.service.ts
 import { Injectable, UnauthorizedException, BadRequestException, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
@@ -8,18 +9,36 @@ import { ResetPasswordDto } from '../dtos/reset-password.dto.js';
 import { USER_REPOSITORY } from '../../domain/repositories/user.repository.interface.js';
 import type { IUserRepository } from '../../domain/repositories/user.repository.interface.js';
 
+export interface UserPermissionItem {
+    moduleCode: string;
+    name: string;
+    path: string;
+    icon: string | null;
+    canCreate: boolean;
+    canRead: boolean;
+    canUpdate: boolean;
+    canDelete: boolean;
+}
+
+export interface LoginResponse {
+    accessToken: string;
+    user: {
+        id: string;
+        email: string;
+        role: string;
+        profile: {
+            id: string;
+            name: string;
+        } | null;
+        modules: UserPermissionItem[];
+    };
+}
+
 export interface JwtPayload {
     sub: string;
     email: string;
     role: string;
     profileId?: string | null;
-    permissions?: Array<{
-        moduleCode: string;
-        canCreate: boolean;
-        canRead: boolean;
-        canUpdate: boolean;
-        canDelete: boolean;
-    }>;
 }
 
 @Injectable()
@@ -29,7 +48,7 @@ export class AuthService {
         private readonly jwtService: JwtService,
     ) { }
 
-    async validateUserAndGenerateToken(loginDto: LoginDto): Promise<{ accessToken: string }> {
+    async validateUserAndGenerateToken(loginDto: LoginDto): Promise<LoginResponse> {
         const user = await this.userRepository.findByEmail(loginDto.email);
 
         if (!user || !user.isActive) {
@@ -42,24 +61,44 @@ export class AuthService {
             throw new UnauthorizedException('Credenciales inválidas');
         }
 
-        const permissions = user.profile?.modules.map((pm) => ({
-            moduleCode: pm.module.code,
-            canCreate: pm.canCreate,
-            canRead: pm.canRead,
-            canUpdate: pm.canUpdate,
-            canDelete: pm.canDelete,
-        }));
+        // Mapear los módulos autorizados (únicamente los que tienen canRead en true)
+        const activeModules: UserPermissionItem[] = (user.profile?.modules ?? [])
+            .filter((pm) => pm.canRead)
+            .map((pm) => ({
+                moduleCode: pm.module.code,
+                name: pm.module.name,
+                path: pm.module.path,
+                icon: pm.module.icon,
+                canCreate: pm.canCreate,
+                canRead: pm.canRead,
+                canUpdate: pm.canUpdate,
+                canDelete: pm.canDelete,
+            }));
 
+        // Mantener el payload del JWT ligero para no inflar las cabeceras HTTP
         const payload: JwtPayload = {
             sub: user.id,
             email: user.email,
             role: user.role,
             profileId: user.profileId,
-            permissions,
         };
 
+        const accessToken = await this.jwtService.signAsync(payload);
+
         return {
-            accessToken: await this.jwtService.signAsync(payload),
+            accessToken,
+            user: {
+                id: user.id,
+                email: user.email,
+                role: user.role,
+                profile: user.profile
+                    ? {
+                        id: user.profile.id,
+                        name: user.profile.name,
+                    }
+                    : null,
+                modules: activeModules,
+            },
         };
     }
 
