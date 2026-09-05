@@ -6,8 +6,9 @@ import { Router } from '@angular/router';
 import { CustomersApiService } from '../../../../core/services/customers-api.service';
 import { ProductsApiService } from '../../../../core/services/products-api.service';
 import { ProformasApiService } from '../../../../core/services/proformas-api.service';
+import { ProformasService } from '../../../../core/services/proformas.service';
 import type { Customer } from '../../../../core/models/customer.model';
-import type { Product, PriceTier } from '../../../../core/models/product.model';
+import type { Product, SupplierStock } from '../../../../core/models/product.model';
 import type { CreateProformaPayload } from '../../../../core/models/proforma.model';
 
 export interface CotizadorCartItem {
@@ -17,6 +18,8 @@ export interface CotizadorCartItem {
     unitPrice: number;
     subtotal: number;
     requiresApproval: boolean;
+    selectedSupplierId?: string;
+    selectedSupplierName?: string;
 }
 
 @Component({
@@ -30,6 +33,7 @@ export class CotizadorComponent implements OnInit {
     private readonly customersApi = inject(CustomersApiService);
     private readonly productsApi = inject(ProductsApiService);
     private readonly proformasApi = inject(ProformasApiService);
+    private readonly proformasService = inject(ProformasService);
     private readonly router = inject(Router);
 
     // Cliente
@@ -45,8 +49,16 @@ export class CotizadorComponent implements OnInit {
     isSearchingProduct = signal<boolean>(false);
     categories = ['Todas', 'Frenos', 'Suspensión & Dirección', 'Motor & Culata', 'Filtros & Lubricantes', 'Transmisión 4x4'];
 
+    // Selección interactiva de Proveedor por Producto: { [productId]: supplierStockId }
+    selectedSupplierByProduct = signal<Record<string, string>>({});
+
     // Carrito / Matriz Transaccional
     cart = signal<CotizadorCartItem[]>([]);
+
+    // Modal de Éxito y Feedback
+    showSuccessModal = signal<boolean>(false);
+    lastCreatedProforma = signal<{ id: string; code: string; status: string } | null>(null);
+    formErrorMessage = signal<string | null>(null);
 
     // Computed Totales & Métricas
     subtotalNeto = computed(() => {
@@ -96,15 +108,22 @@ export class CotizadorComponent implements OnInit {
         this.selectedCustomer.set(customer);
         this.customerSearchResults.set([]);
         this.customerQuery.set('');
+        this.formErrorMessage.set(null);
     }
 
     clearCustomer(): void {
         this.selectedCustomer.set(null);
     }
 
-    // Búsqueda Repuestos
+    // Búsqueda Repuestos (activa desde el 3er carácter)
     onProductQueryChange(val: string): void {
         this.productQuery.set(val);
+        const cleaned = val ? val.trim() : '';
+
+        if (cleaned.length > 0 && cleaned.length < 3) {
+            return;
+        }
+
         this.searchProducts();
     }
 
@@ -131,9 +150,36 @@ export class CotizadorComponent implements OnInit {
             });
     }
 
+    // Gestión interactiva del Proveedor activo en la tarjeta
+    selectProductSupplier(productId: string, supplierStockId: string): void {
+        this.selectedSupplierByProduct.update((prev) => ({
+            ...prev,
+            [productId]: supplierStockId,
+        }));
+    }
+
+    getActiveStock(prod: Product): SupplierStock | undefined {
+        const selectedId = this.selectedSupplierByProduct()[prod.id];
+        if (selectedId) {
+            const found = prod.stocks.find((s) => s.id === selectedId);
+            if (found) return found;
+        }
+        return prod.stocks[0];
+    }
+
     // Manejo del Carrito
-    addToCart(product: Product): void {
-        const existingIndex = this.cart().findIndex((i) => i.product.id === product.id);
+    addToCart(product: Product, stockItem?: SupplierStock): void {
+        this.formErrorMessage.set(null);
+
+        // Toma el proveedor pasado explícitamente o el que esté marcado en la tarjeta
+        const chosenStock = stockItem ?? this.getActiveStock(product);
+        const supplierId = chosenStock?.supplierId ?? product.stocks[0]?.supplierId;
+        const supplierName = chosenStock?.supplierName ?? product.stocks[0]?.supplierName;
+
+        const existingIndex = this.cart().findIndex(
+            (i) => i.product.id === product.id && i.selectedSupplierId === supplierId
+        );
+
         if (existingIndex > -1) {
             this.updateQuantity(existingIndex, this.cart()[existingIndex].quantity + 1);
             return;
@@ -149,6 +195,8 @@ export class CotizadorComponent implements OnInit {
             unitPrice: price,
             subtotal: price,
             requiresApproval: false,
+            selectedSupplierId: supplierId,
+            selectedSupplierName: supplierName,
         };
 
         this.cart.update((prev) => [...prev, newItem]);
@@ -195,14 +243,16 @@ export class CotizadorComponent implements OnInit {
     submitProforma(): void {
         const customer = this.selectedCustomer();
         if (!customer) {
-            alert('Debe seleccionar o registrar un cliente antes de emitir la cotización.');
+            this.formErrorMessage.set('Debe seleccionar o registrar un cliente antes de emitir la cotización.');
             return;
         }
 
         if (this.cart().length === 0) {
-            alert('Debe agregar al menos un repuesto a la cotización.');
+            this.formErrorMessage.set('Debe agregar al menos un repuesto a la cotización.');
             return;
         }
+
+        this.formErrorMessage.set(null);
 
         const payload: CreateProformaPayload = {
             customerId: customer.id,
@@ -216,24 +266,45 @@ export class CotizadorComponent implements OnInit {
 
         this.proformasApi.create(payload).subscribe({
             next: (created) => {
-                alert(`Proforma ${created.code} emitida exitosamente en estado: ${created.status}`);
+                this.lastCreatedProforma.set({
+                    id: created.id,
+                    code: created.code,
+                    status: created.status,
+                });
+                this.showSuccessModal.set(true);
 
-                // Limpiar señales y campos de búsqueda
                 this.cart.set([]);
                 this.selectedCustomer.set(null);
                 this.customerQuery.set('');
                 this.productQuery.set('');
 
-                // Redirección según estado
                 if (created.status === 'PENDING_APPROVAL') {
-                    this.router.navigate(['/approvals']);
-                } else {
-                    this.router.navigate(['/proformas']);
+                    this.proformasService.refreshPendingCount();
                 }
             },
             error: (err) => {
-                alert(err?.error?.message || 'Error al emitir la proforma');
+                this.formErrorMessage.set(err?.error?.message || 'Error al emitir la proforma. Intente nuevamente.');
             },
         });
+    }
+
+    downloadAndClose(): void {
+        const p = this.lastCreatedProforma();
+        if (p) {
+            this.proformasService.downloadPdf(p.id, p.code);
+        }
+        this.closeSuccessModal();
+    }
+
+    closeSuccessModal(): void {
+        const status = this.lastCreatedProforma()?.status;
+        this.showSuccessModal.set(false);
+        this.lastCreatedProforma.set(null);
+
+        if (status === 'PENDING_APPROVAL') {
+            this.router.navigate(['/approvals']);
+        } else {
+            this.router.navigate(['/proformas']);
+        }
     }
 }

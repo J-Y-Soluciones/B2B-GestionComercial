@@ -92,14 +92,15 @@
             <section class="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="text-sm font-bold text-slate-800">2. Catálogo Express &amp; Consulta de Existencias</h2>
+                    <span class="text-[11px] text-slate-400 font-mono">Búsqueda activa desde 3 caracteres</span>
                 </div>
 
                 <!-- Filtros Categoría -->
                 <div class="flex items-center gap-1.5 overflow-x-auto pb-2 mb-3 scrollbar-none">
                     @for (cat of categories; track cat) {
                     <button type="button" (click)="setCategory(cat)" [class]="productCategory() === cat
-                  ? 'bg-emerald-800 text-white font-medium'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+      ? 'bg-emerald-800 text-white font-medium'
+      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
                         class="px-3 py-1 rounded-md text-xs whitespace-nowrap cursor-pointer transition-colors">
                         {{ cat }}
                     </button>
@@ -107,45 +108,83 @@
                 </div>
 
                 <!-- Input Búsqueda -->
-                <input type="text" [ngModel]="productQuery()" (ngModelChange)="onProductQueryChange($event)"
-                    placeholder="Buscar por SKU interno, nombre o marca (ej. Bosch, Filtro, DSC-001)..."
-                    class="w-full text-sm border border-slate-300 rounded-lg px-3.5 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all mb-4" />
+                <div class="relative mb-4">
+                    <input type="text" [ngModel]="productQuery()" (ngModelChange)="onProductQueryChange($event)"
+                        placeholder="Escribe al menos 3 letras (ej. Pas, Bosch, Filtro, NGK)..."
+                        class="w-full text-sm border border-slate-300 rounded-lg px-3.5 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all" />
+                    @if (isSearchingProduct()) {
+                    <span
+                        class="absolute right-3 top-3 text-xs text-slate-400 font-mono animate-pulse">Buscando...</span>
+                    }
+                </div>
 
-                <!-- Resultados Rápidos -->
-                <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                <!-- Resultados Rápidos con Desglose Multiproveedor -->
+                <div class="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                    @if (productSearchResults().length === 0 && !isSearchingProduct()) {
+                    <div
+                        class="py-8 text-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-lg">
+                        No se encontraron repuestos con los criterios ingresados.
+                    </div>
+                    }
+
                     @for (prod of productSearchResults(); track prod.id) {
                     <div
-                        class="border border-slate-200 rounded-lg p-3 hover:border-emerald-300 bg-white flex flex-col md:flex-row md:items-center justify-between gap-3 transition-colors">
-                        <div class="space-y-1">
-                            <div class="flex items-center gap-2">
+                        class="border border-slate-200 rounded-lg p-3.5 hover:border-emerald-400 bg-white flex flex-col md:flex-row md:items-center justify-between gap-3 transition-colors shadow-2xs">
+                        <div class="space-y-1.5 flex-1">
+                            <!-- Código, Nombre y Marca -->
+                            <div class="flex items-center gap-2 flex-wrap">
                                 <span
-                                    class="font-mono text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">{{
-                                    prod.internalCode }}</span>
-                                <span class="text-sm font-bold text-slate-800">{{ prod.name }}</span>
-                                <span class="text-xs text-slate-400">&bull; {{ prod.brand }}</span>
+                                    class="font-mono text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                                    {{ prod.internalCode }}
+                                </span>
+                                <span class="text-sm font-bold text-slate-900">{{ prod.name }}</span>
+                                <span class="text-xs text-slate-500 font-medium">&bull; {{ prod.brand }}</span>
                             </div>
-                            <!-- Pill Multiproveedor -->
-                            <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
-                                <span class="text-slate-500">Stock:</span>
-                                @for (s of prod.stocks; track s.id) {
-                                <span class="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-mono">{{
-                                    s.supplierName || 'Prov' }}: {{ s.stock }}</span>
-                                }
+
+                            <!-- Desglose Multiproveedor interactivo con Selección Persistente -->
+                            <div class="flex flex-wrap items-center gap-1.5 text-xs pt-0.5">
                                 <span
-                                    [class]="prod.totalStock > prod.minStock ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'"
-                                    class="px-2 py-0.5 rounded font-mono font-bold">
-                                    Total: {{ prod.totalStock }}
+                                    class="text-slate-400 text-[11px] font-semibold uppercase tracking-wider">Proveedor:</span>
+                                @for (s of prod.stocks; track s.id) {
+                                <button type="button" (click)="selectProductSupplier(prod.id, s.id)" [class]="(getActiveStock(prod)?.id === s.id) 
+                                        ? 'bg-emerald-50 border-emerald-500 text-emerald-900 ring-1 ring-emerald-500 font-semibold' 
+                                        : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600'"
+                                    class="inline-flex items-center gap-1.5 border px-2.5 py-1 rounded-md text-[11px] transition-all cursor-pointer shadow-2xs">
+
+                                    <!-- Indicador radial activo -->
+                                    <span
+                                        [class]="(getActiveStock(prod)?.id === s.id) ? 'bg-emerald-600' : 'bg-slate-300'"
+                                        class="w-1.5 h-1.5 rounded-full"></span>
+
+                                    <span>{{ s.supplierName || 'Distribuidor' }}</span>
+
+                                    <span
+                                        class="font-mono bg-white px-1.5 py-0.2 rounded border border-slate-200 text-slate-800 text-[10px] font-bold">
+                                        {{ s.stock }} u.
+                                    </span>
+                                </button>
+                                }
+
+                                <span [class]="prod.totalStock > prod.minStock 
+        ? 'bg-emerald-100 text-emerald-900 border-emerald-300' 
+        : 'bg-rose-100 text-rose-900 border-rose-300'"
+                                    class="px-2 py-0.5 rounded-md font-mono font-bold text-[11px] border ml-auto">
+                                    Stock Global: {{ prod.totalStock }}
                                 </span>
                             </div>
                         </div>
-                        <div class="flex items-center gap-3 shrink-0">
+
+                        <!-- Precios y Botón Agregar Genérico -->
+                        <div
+                            class="flex items-center gap-4 shrink-0 justify-between md:justify-end border-t md:border-t-0 pt-2 md:pt-0 border-slate-100">
                             <div class="text-right">
-                                <span class="text-[11px] text-slate-400 block font-mono">T1 Base</span>
-                                <span class="font-mono text-sm font-bold text-slate-800">S/ {{ getTierPrice(prod, 1) |
-                                    number:'1.2-2' }}</span>
+                                <span class="text-[10px] text-slate-400 block font-mono uppercase">T1 Base</span>
+                                <span class="font-mono text-sm font-bold text-slate-800">
+                                    S/ {{ getTierPrice(prod, 1) | number:'1.2-2' }}
+                                </span>
                             </div>
                             <button type="button" (click)="addToCart(prod)"
-                                class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs">
+                                class="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs">
                                 <span>+ Agregar</span>
                             </button>
                         </div>
@@ -186,13 +225,26 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
-                            @for (item of cart(); track item.product.id; let idx = $index) {
+                            @for (item of cart(); track (item.product.id + (item.selectedSupplierId || '')); let idx =
+                            $index) {
                             <tr [class]="item.requiresApproval ? 'bg-amber-50/40 border-l-4 border-amber-400' : ''"
                                 class="hover:bg-slate-50/80 transition-colors">
                                 <td class="py-3 pr-2">
                                     <div class="font-mono font-bold text-slate-700">{{ item.product.internalCode }}
                                     </div>
                                     <div class="font-semibold text-slate-800">{{ item.product.name }}</div>
+
+                                    <!-- Badge del Proveedor Escogido -->
+                                    @if (item.selectedSupplierName) {
+                                    <div class="mt-1">
+                                        <span
+                                            class="inline-flex items-center gap-1 text-[10px] font-medium text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
+                                            📦 Proveedor: <strong class="text-slate-800">{{ item.selectedSupplierName
+                                                }}</strong>
+                                        </span>
+                                    </div>
+                                    }
+
                                     @if (item.requiresApproval) {
                                     <span
                                         class="inline-block mt-1 text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
@@ -279,6 +331,15 @@
                     <span class="text-[11px] text-slate-400 font-mono block mt-0.5">Incluye I.G.V. Oficial</span>
                 </div>
 
+                <!-- Alerta de Validación de Formulario (Inline en vez de alert nativo) -->
+                @if (formErrorMessage()) {
+                <div
+                    class="bg-rose-50 border border-rose-200 rounded-lg p-3 text-xs text-rose-800 flex items-start gap-2">
+                    <span class="text-sm font-bold">✕</span>
+                    <p class="leading-snug">{{ formErrorMessage() }}</p>
+                </div>
+                }
+
                 <!-- Alerta Regla Tier 3 -->
                 @if (requiresManagerApproval()) {
                 <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900 space-y-1">
@@ -320,4 +381,54 @@
             </div>
         </div>
     </main>
+
+    <!-- MODAL CORPORATIVO DE EMISIÓN EXITOSA (Reemplaza confirm/alert nativo) -->
+    @if (showSuccessModal()) {
+    <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div
+            class="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-sm overflow-hidden text-center p-6 space-y-4">
+
+            <div
+                class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto text-xl font-bold shadow-xs">
+                ✓
+            </div>
+
+            <div>
+                <h3 class="text-base font-bold text-slate-900">Proforma Emitida con Éxito</h3>
+                <p class="text-xs text-slate-500 mt-1">
+                    Código: <span class="font-mono font-bold text-slate-800">{{ lastCreatedProforma()?.code }}</span>
+                </p>
+                <div class="mt-2">
+                    @if (lastCreatedProforma()?.status === 'PENDING_APPROVAL') {
+                    <span
+                        class="text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 px-2.5 py-0.5 rounded-full uppercase">
+                        Pendiente de Aprobación (Tier 3)
+                    </span>
+                    } @else {
+                    <span
+                        class="text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 px-2.5 py-0.5 rounded-full uppercase">
+                        Lista para Despacho
+                    </span>
+                    }
+                </div>
+            </div>
+
+            <p class="text-[11px] text-slate-400">
+                ¿Deseas descargar el comprobante en formato PDF ahora?
+            </p>
+
+            <div class="grid grid-cols-2 gap-2 pt-2 text-xs">
+                <button type="button" (click)="closeSuccessModal()"
+                    class="w-full py-2.5 px-3 text-slate-600 bg-slate-100 hover:bg-slate-200 font-semibold rounded-lg transition-colors cursor-pointer">
+                    Omitir
+                </button>
+                <button type="button" (click)="downloadAndClose()"
+                    class="w-full py-2.5 px-3 bg-[#064e3b] hover:bg-emerald-900 text-white font-semibold rounded-lg shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
+                    <span>📄</span> Descargar
+                </button>
+            </div>
+
+        </div>
+    </div>
+    }
 </div>

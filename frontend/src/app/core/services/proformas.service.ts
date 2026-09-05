@@ -77,4 +77,20 @@ export class ProformasService {
             tap(() => this.refreshPendingCount())
         );
     }
+    downloadPdf(id: string, code: string): void {
+        this.http.get(`${this.API_URL}/${id}/pdf`, { responseType: 'blob' }).subscribe({
+            next: (blob: Blob) => {
+                const url = window.URL.createObjectURL(blob);
+                const anchor = document.createElement('a');
+                anchor.href = url;
+                anchor.download = `${code}.pdf`;
+                anchor.click();
+                window.URL.revokeObjectURL(url);
+            },
+            error: (err) => {
+                console.error('Error descargando PDF:', err);
+                alert('Error al descargar el comprobante en PDF.');
+            }
+        });
+    } 
 }

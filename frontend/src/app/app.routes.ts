@@ -1,7 +1,7 @@
-// src/app/app.routes.ts
 import { Routes } from '@angular/router';
 import { AdminLayoutComponent } from './layout/admin-layout/admin-layout.component';
 import { authGuard } from './core/guards/auth.guard';
+import { roleGuard } from './core/guards/role.guard';
 
 export const routes: Routes = [
     {
@@ -19,7 +19,6 @@ export const routes: Routes = [
         loadComponent: () => import('./features/auth/reset-password/reset-password.component').then(m => m.ResetPasswordComponent),
         title: 'Restablecer Contraseña | Sistema de Repuestos'
     },
-    // Shell administrativo protegido con Guard
     {
         path: '',
         component: AdminLayoutComponent,
@@ -52,17 +51,21 @@ export const routes: Routes = [
             },
             {
                 path: 'approvals',
+                canActivate: [roleGuard],
+                data: { roles: ['ADMIN', 'MANAGER'] },
                 loadComponent: () => import('./features/approvals/approvals-list.component').then(m => m.ApprovalsListComponent),
                 title: 'Bandeja de Aprobaciones | Sistema de Repuestos'
             },
             {
                 path: 'users',
+                canActivate: [roleGuard],
+                data: { roles: ['ADMIN'] },
                 loadComponent: () => import('./features/users/users-list.component').then(m => m.UsersListComponent),
                 title: 'Usuarios y Perfiles | Sistema de Repuestos'
             },
             {
                 path: '',
-                redirectTo: 'approvals',
+                redirectTo: 'proformas/create',
                 pathMatch: 'full'
             }
         ]

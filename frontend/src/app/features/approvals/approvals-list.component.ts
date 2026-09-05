@@ -3,6 +3,7 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { ProformasService } from '../../core/services/proformas.service';
 
 export interface ProformaDetailDto {
   id: string;
@@ -197,6 +198,13 @@ export interface ProformaApiDto {
                 </div>
                 <p class="text-[11px] text-slate-400 mt-0.5">Vence: {{ p.expiresAt | date:'medium' }}</p>
               </div>
+
+              <button 
+                (click)="downloadPdfCurrent()" 
+                class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-1.5 px-3 rounded-lg border border-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Descargar comprobante en PDF">
+                📄 Descargar PDF
+              </button>
             </div>
 
             <!-- Ficha del Cliente -->
@@ -346,6 +354,7 @@ export interface ProformaApiDto {
 })
 export class ApprovalsListComponent implements OnInit {
   private readonly http = inject(HttpClient);
+  private readonly proformasService = inject(ProformasService);
   private readonly API_URL = 'http://localhost:3000/proformas';
 
   proformas = signal<ProformaApiDto[]>([]);
@@ -370,8 +379,10 @@ export class ApprovalsListComponent implements OnInit {
     this.loading.set(true);
     this.http.get<ProformaApiDto[]>(`${this.API_URL}?status=PENDING_APPROVAL`).subscribe({
       next: (data) => {
-        this.proformas.set(data || []);
-        this.selected.set(data && data.length > 0 ? data[0] : null);
+        const items = data || [];
+        this.proformas.set(items);
+        this.selected.set(items.length > 0 ? items[0] : null);
+        this.proformasService.pendingApprovalsCount.set(items.length);
         this.loading.set(false);
       },
       error: (err) => {
@@ -379,6 +390,13 @@ export class ApprovalsListComponent implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+
+  private removeProformaFromView(id: string): void {
+    const updated = this.proformas().filter((p) => p.id !== id);
+    this.proformas.set(updated);
+    this.selected.set(updated.length > 0 ? updated[0] : null);
+    this.proformasService.pendingApprovalsCount.set(updated.length);
   }
 
   selectProforma(p: ProformaApiDto): void {
@@ -399,7 +417,7 @@ export class ApprovalsListComponent implements OnInit {
     this.http.patch(`${this.API_URL}/${current.id}/approve`, {}).subscribe({
       next: () => {
         this.actionLoading.set(false);
-        this.loadData();
+        this.removeProformaFromView(current.id);
       },
       error: (err) => {
         this.actionLoading.set(false);
@@ -430,12 +448,18 @@ export class ApprovalsListComponent implements OnInit {
       next: () => {
         this.actionLoading.set(false);
         this.closeRejectModal();
-        this.loadData();
+        this.removeProformaFromView(current.id);
       },
       error: (err) => {
         this.actionLoading.set(false);
         alert(err.error?.message || 'Error al rechazar la proforma.');
       }
     });
+  }
+
+  downloadPdfCurrent(): void {
+    const current = this.selected();
+    if (!current) return;
+    this.proformasService.downloadPdf(current.id, current.code);
   }
 }

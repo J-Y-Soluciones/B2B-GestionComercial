@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit, HostListener, DestroyRef } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, HostListener, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { filter } from 'rxjs';
@@ -62,26 +62,28 @@ import { ProformasService } from '../../core/services/proformas.service';
 
           <!-- Navegación Dinámica -->
           <nav class="p-3 space-y-1">
-            <!-- Aprobaciones Tier 3 -->
-            <a 
-              routerLink="/approvals" 
-              routerLinkActive="!bg-[#064e3b] !text-white shadow-sm active-item"
-              class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100/80 transition-all text-xs font-medium group">
-              <div class="flex items-center gap-3 min-w-0">
-                <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M9 11l3 3L22 4"></path>
-                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-                </svg>
-                @if (sidebarExpanded()) {
-                  <span class="truncate">Aprobaciones (T3)</span>
+            <!-- Aprobaciones Tier 3 (Exclusivo para ADMIN y MANAGER) -->
+            @if (canViewApprovals()) {
+              <a 
+                routerLink="/approvals" 
+                routerLinkActive="!bg-[#064e3b] !text-white shadow-sm active-item"
+                class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100/80 transition-all text-xs font-medium group">
+                <div class="flex items-center gap-3 min-w-0">
+                  <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 11l3 3L22 4"></path>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                  </svg>
+                  @if (sidebarExpanded()) {
+                    <span class="truncate">Aprobaciones (T3)</span>
+                  }
+                </div>
+                @if (sidebarExpanded() && pendingApprovalsCount() > 0) {
+                  <span class="text-[10px] font-bold bg-[#d97706] text-white px-2 py-0.5 rounded-full whitespace-nowrap shadow-xs">
+                    {{ pendingApprovalsCount() }} pendientes
+                  </span>
                 }
-              </div>
-              @if (sidebarExpanded() && pendingApprovalsCount() > 0) {
-                <span class="text-[10px] font-bold bg-[#d97706] text-white px-2 py-0.5 rounded-full whitespace-nowrap shadow-xs">
-                  {{ pendingApprovalsCount() }} pendientes
-                </span>
-              }
-            </a>
+              </a>
+            }
 
             <!-- Módulos autorizados de la sesión -->
             @for (mod of modules(); track mod.moduleCode) {
@@ -207,7 +209,7 @@ import { ProformasService } from '../../core/services/proformas.service';
 
             <button 
               (click)="logout()"
-              class="px-2.5 py-1 text-xs font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-md border border-slate-200 transition-colors"
+              class="px-2.5 py-1 text-xs font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-md border border-slate-200 transition-colors cursor-pointer"
               title="Cerrar sesión">
               Salir
             </button>
@@ -229,10 +231,15 @@ export class AdminLayoutComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
 
   public sidebarExpanded = signal(true);
-  // Lee de forma reactiva la señal del servicio compartido
   public pendingApprovalsCount = this.proformasService.pendingApprovalsCount;
   public currentUser = this.authService.currentUser;
   public modules = this.authService.authorizedModules;
+
+  // Evalúa permisos para mostrar aprobaciones solo a ADMIN o MANAGER
+  public canViewApprovals = computed(() => {
+    const role = this.currentUser()?.role;
+    return role === 'ADMIN' || role === 'MANAGER';
+  });
 
   @HostListener('window:keydown', ['$event'])
   handleGlobalShortcuts(event: KeyboardEvent): void {
@@ -254,18 +261,19 @@ export class AdminLayoutComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Carga inicial
-    this.proformasService.refreshPendingCount();
+    // Solo carga el contador si el usuario tiene rol habilitado para aprobar
+    if (this.canViewApprovals()) {
+      this.proformasService.refreshPendingCount();
 
-    // Refresca el conteo en cada navegación de ruta
-    this.router.events
-      .pipe(
-        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe(() => {
-        this.proformasService.refreshPendingCount();
-      });
+      this.router.events
+        .pipe(
+          filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+          takeUntilDestroyed(this.destroyRef)
+        )
+        .subscribe(() => {
+          this.proformasService.refreshPendingCount();
+        });
+    }
   }
 
   toggleSidebar(): void {

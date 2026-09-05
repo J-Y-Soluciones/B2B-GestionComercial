@@ -5,7 +5,7 @@ import * as bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main(): Promise<void> {
-    console.log('Iniciando seeding con RBAC dinámico, inventario y proformas de prueba...');
+    console.log('Iniciando seeding con RBAC dinámico, inventario multi-proveedor y proformas de prueba...');
 
     // 1. Limpieza en orden estricto de claves foráneas
     await prisma.passwordResetToken.deleteMany();
@@ -102,7 +102,7 @@ async function main(): Promise<void> {
         data: { type: CustomerType.BUSINESS, documentNumber: '20123456789', name: 'Transportes del Norte SAC', email: 'logistica@transportesnorte.com', phone: '014445555', address: 'Av. Los Motores 123, Lima' },
     });
 
-    // 7. Proveedores Base
+    // 7. Proveedores Base (3 proveedores mayoristas para soportar inventario multi-proveedor)
     const supplierBosch = await prisma.supplier.create({
         data: {
             ruc: '20501234561',
@@ -125,7 +125,18 @@ async function main(): Promise<void> {
         },
     });
 
-    // 8. Productos, Precios y Stock
+    const supplierMayorista = await prisma.supplier.create({
+        data: {
+            ruc: '20778899001',
+            name: 'Mayorista Central de Autopartes Lima SAC',
+            contactName: 'Roberto Gómez',
+            phone: '945678123',
+            email: 'pedidos@autoparteslima.pe',
+            isActive: true,
+        },
+    });
+
+    // 8. Productos con Stock Multi-proveedor y Matriz de 3 Precios
     const p1 = await prisma.product.create({
         data: {
             internalCode: 'BOSCH-PF-01',
@@ -142,12 +153,26 @@ async function main(): Promise<void> {
                 ],
             },
             stocks: {
-                create: {
-                    supplierId: supplierBosch.id,
-                    supplierSku: 'BOSCH-BP-994',
-                    stock: 24,
-                    costPrice: new Prisma.Decimal(68.5),
-                },
+                create: [
+                    {
+                        supplierId: supplierBosch.id,
+                        supplierSku: 'BOSCH-BP-994',
+                        stock: 14,
+                        costPrice: new Prisma.Decimal(68.5),
+                    },
+                    {
+                        supplierId: supplierImports.id,
+                        supplierSku: 'PAC-PF-BOSCH',
+                        stock: 8,
+                        costPrice: new Prisma.Decimal(72.0),
+                    },
+                    {
+                        supplierId: supplierMayorista.id,
+                        supplierSku: 'MAY-7701-F',
+                        stock: 5,
+                        costPrice: new Prisma.Decimal(70.0),
+                    },
+                ],
             },
         },
     });
@@ -157,7 +182,7 @@ async function main(): Promise<void> {
             internalCode: 'FRAM-FA-02',
             name: 'Filtro de Aceite Blindado Fram',
             brand: 'Fram',
-            category: 'Filtros',
+            category: 'Filtros & Lubricantes',
             minStock: 10,
             isActive: true,
             priceTiers: {
@@ -168,12 +193,20 @@ async function main(): Promise<void> {
                 ],
             },
             stocks: {
-                create: {
-                    supplierId: supplierImports.id,
-                    supplierSku: 'FRAM-PH-3593A',
-                    stock: 40,
-                    costPrice: new Prisma.Decimal(16.0),
-                },
+                create: [
+                    {
+                        supplierId: supplierImports.id,
+                        supplierSku: 'FRAM-PH-3593A',
+                        stock: 25,
+                        costPrice: new Prisma.Decimal(16.0),
+                    },
+                    {
+                        supplierId: supplierMayorista.id,
+                        supplierSku: 'MAY-OIL-02',
+                        stock: 18,
+                        costPrice: new Prisma.Decimal(15.5),
+                    },
+                ],
             },
         },
     });
@@ -183,7 +216,7 @@ async function main(): Promise<void> {
             internalCode: 'NGK-BJ-03',
             name: 'Bujía Láser Iridium NGK',
             brand: 'NGK',
-            category: 'Encendido',
+            category: 'Motor & Culata',
             minStock: 8,
             isActive: true,
             priceTiers: {
@@ -194,12 +227,20 @@ async function main(): Promise<void> {
                 ],
             },
             stocks: {
-                create: {
-                    supplierId: supplierImports.id,
-                    supplierSku: 'NGK-ILZKR7B-11',
-                    stock: 32,
-                    costPrice: new Prisma.Decimal(21.0),
-                },
+                create: [
+                    {
+                        supplierId: supplierImports.id,
+                        supplierSku: 'NGK-ILZKR7B-11',
+                        stock: 20,
+                        costPrice: new Prisma.Decimal(21.0),
+                    },
+                    {
+                        supplierId: supplierBosch.id,
+                        supplierSku: 'BOSCH-DIST-NGK',
+                        stock: 15,
+                        costPrice: new Prisma.Decimal(22.5),
+                    },
+                ],
             },
         },
     });
@@ -211,7 +252,6 @@ async function main(): Promise<void> {
     const expiresTomorrow = new Date();
     expiresTomorrow.setDate(expiresTomorrow.getDate() + 2);
 
-    // Proforma 1
     const proforma1 = await prisma.proforma.create({
         data: {
             code: 'PROF-2026-0012',
@@ -248,7 +288,6 @@ async function main(): Promise<void> {
         },
     });
 
-    // Proforma 2
     const proforma2 = await prisma.proforma.create({
         data: {
             code: 'PROF-2026-0015',
@@ -279,6 +318,8 @@ async function main(): Promise<void> {
     });
 
     console.log(`Seeding completado con éxito:`);
+    console.log(`- 3 Proveedores creados`);
+    console.log(`- 3 Productos configurados con stock multi-proveedor`);
     console.log(`- 2 Proformas pendientes creadas: ${proforma1.code}, ${proforma2.code}`);
 }
 
