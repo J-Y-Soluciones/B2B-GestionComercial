@@ -1,16 +1,16 @@
 // backend/src/modules/products/domain/repositories/product.repository.interface.ts
-import type { Product, PriceTier, SupplierProductStock, Supplier } from '@prisma/client';
+import type { ProductEntity } from '../entities/product.entity.js';
 
-export const PRODUCT_REPOSITORY = Symbol('PRODUCT_REPOSITORY');
-
-export type ProductWithDetails = Product & {
-    priceTiers: PriceTier[];
-    stocks: (SupplierProductStock & { supplier: Supplier })[];
-};
-
-export interface PriceTierData {
+export interface PriceTierInput {
     tier: number;
     price: number;
+}
+
+export interface SupplierStockInput {
+    supplierId: string;
+    supplierSku?: string | null;
+    stock: number;
+    costPrice: number;
 }
 
 export interface CreateProductData {
@@ -19,7 +19,9 @@ export interface CreateProductData {
     category: string;
     brand: string;
     minStock?: number;
-    priceTiers: PriceTierData[];
+    isActive?: boolean;
+    priceTiers: PriceTierInput[];
+    stocks?: SupplierStockInput[];
 }
 
 export interface UpdateProductData {
@@ -29,21 +31,24 @@ export interface UpdateProductData {
     brand?: string;
     minStock?: number;
     isActive?: boolean;
-    priceTiers?: PriceTierData[];
+    priceTiers?: PriceTierInput[];
 }
 
-export interface SearchProductFilters {
+export interface ProductSearchParams {
     query?: string;
     category?: string;
     brand?: string;
     inStock?: boolean;
+    limit?: number;
 }
 
 export interface IProductRepository {
-    findById(id: string): Promise<ProductWithDetails | null>;
-    findByInternalCode(internalCode: string): Promise<ProductWithDetails | null>;
-    search(filters: SearchProductFilters): Promise<ProductWithDetails[]>;
-    create(data: CreateProductData): Promise<ProductWithDetails>;
-    update(id: string, data: UpdateProductData): Promise<ProductWithDetails>;
-    updateStock(productId: string, supplierId: string, quantity: number, costPrice?: number): Promise<void>;
+    findById(id: string): Promise<ProductEntity | null>;
+    findByInternalCode(internalCode: string): Promise<ProductEntity | null>;
+    search(params: ProductSearchParams): Promise<ProductEntity[]>;
+    create(data: CreateProductData): Promise<ProductEntity>;
+    update(id: string, data: UpdateProductData): Promise<ProductEntity>;
+    upsertSupplierStock(productId: string, stockData: SupplierStockInput): Promise<ProductEntity>;
 }
+
+export const PRODUCT_REPOSITORY_TOKEN = Symbol('IProductRepository');

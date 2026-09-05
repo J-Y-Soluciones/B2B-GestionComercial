@@ -1,7 +1,8 @@
-// src/app/layout/admin-layout/admin-layout.component.ts
-import { Component, signal, inject, OnInit } from '@angular/core';
+import { Component, signal, inject, OnInit, HostListener, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
+import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../core/services/auth.service';
 import { ProformasService } from '../../core/services/proformas.service';
 
@@ -61,8 +62,7 @@ import { ProformasService } from '../../core/services/proformas.service';
 
           <!-- Navegación Dinámica -->
           <nav class="p-3 space-y-1">
-            
-            <!-- Aprobaciones Tier 3 (Destacado para el Gerente) -->
+            <!-- Aprobaciones Tier 3 -->
             <a 
               routerLink="/approvals" 
               routerLinkActive="!bg-[#064e3b] !text-white shadow-sm active-item"
@@ -87,7 +87,7 @@ import { ProformasService } from '../../core/services/proformas.service';
             @for (mod of modules(); track mod.moduleCode) {
               @if (mod.path !== '/approvals') {
                 <a 
-                  [routerLink]="mod.path" 
+                  [routerLink]="mod.moduleCode === 'PROFORMAS' ? '/proformas/create' : mod.path" 
                   routerLinkActive="!bg-[#064e3b] !text-white shadow-sm active-item"
                   class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 transition-all text-xs font-medium group">
                   <div class="flex items-center gap-3 min-w-0">
@@ -120,7 +120,6 @@ import { ProformasService } from '../../core/services/proformas.service';
               }
             }
 
-            <!-- Proveedores & OC -->
             <div class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 text-xs cursor-default">
               <svg class="w-4 h-4 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
@@ -130,7 +129,6 @@ import { ProformasService } from '../../core/services/proformas.service';
               }
             </div>
 
-            <!-- Reportes & Auditoría (Modo Off) -->
             <div class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 text-xs cursor-not-allowed">
               <div class="flex items-center gap-3 min-w-0">
                 <svg class="w-4 h-4 text-slate-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -147,7 +145,7 @@ import { ProformasService } from '../../core/services/proformas.service';
           </nav>
         </div>
 
-        <!-- Footer Sidebar (Almacén Central) -->
+        <!-- Footer Sidebar -->
         <div class="p-3 border-t border-slate-100 bg-slate-50/50">
           @if (sidebarExpanded()) {
             <div class="flex items-center gap-2 text-[11px]">
@@ -176,13 +174,14 @@ import { ProformasService } from '../../core/services/proformas.service';
       <div class="flex-1 flex flex-col min-w-0">
         <!-- HEADER SUPERIOR -->
         <header class="h-14 bg-white border-b border-slate-200 px-6 flex items-center justify-between shadow-xs">
-          <!-- Breadcrumb y Selector de Sucursal -->
           <div class="flex items-center gap-2.5 text-xs">
             <span class="text-slate-400 font-medium">VortexYolTI</span>
             <span class="text-slate-300">/</span>
             <span class="text-slate-400 font-medium">Comercial</span>
             <span class="text-slate-300">/</span>
-            <span class="font-bold text-emerald-950">Bandeja de Aprobaciones (Tier 3)</span>
+            <span class="font-bold text-emerald-950">
+              {{ currentRouteTitle() }}
+            </span>
 
             <div class="hidden xl:flex items-center gap-1.5 ml-4 pl-4 border-l border-slate-200 text-slate-600">
               <svg class="w-3.5 h-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -194,7 +193,6 @@ import { ProformasService } from '../../core/services/proformas.service';
             </div>
           </div>
 
-          <!-- Perfil y Acciones -->
           <div class="flex items-center gap-3">
             <div class="hidden lg:flex items-center gap-2 border border-slate-200 rounded-lg px-2.5 py-1 bg-slate-50 text-[11px]">
               <span class="text-slate-400">TC:</span>
@@ -228,21 +226,46 @@ export class AdminLayoutComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly proformasService = inject(ProformasService);
+  private readonly destroyRef = inject(DestroyRef);
 
   public sidebarExpanded = signal(true);
-  public pendingApprovalsCount = signal(0);
+  // Lee de forma reactiva la señal del servicio compartido
+  public pendingApprovalsCount = this.proformasService.pendingApprovalsCount;
   public currentUser = this.authService.currentUser;
   public modules = this.authService.authorizedModules;
 
-  ngOnInit(): void {
-    this.refreshPendingCount();
+  @HostListener('window:keydown', ['$event'])
+  handleGlobalShortcuts(event: KeyboardEvent): void {
+    if (event.key === 'F2') {
+      event.preventDefault();
+      this.router.navigate(['/proformas/create']);
+    }
   }
 
-  refreshPendingCount(): void {
-    this.proformasService.getProformas('PENDING_APPROVAL').subscribe({
-      next: (data) => this.pendingApprovalsCount.set(data.length),
-      error: () => this.pendingApprovalsCount.set(0)
-    });
+  currentRouteTitle(): string {
+    const url = this.router.url;
+    if (url.includes('/proformas/create')) return 'Cotizador & Emisión de Proformas (F2)';
+    if (url.includes('/proformas')) return 'Listado de Proformas';
+    if (url.includes('/catalog')) return 'Catálogo e Inventario';
+    if (url.includes('/customers')) return 'Clientes & Cuentas RUC';
+    if (url.includes('/approvals')) return 'Bandeja de Aprobaciones (Tier 3)';
+    if (url.includes('/users')) return 'Usuarios y Perfiles';
+    return 'Panel de Control';
+  }
+
+  ngOnInit(): void {
+    // Carga inicial
+    this.proformasService.refreshPendingCount();
+
+    // Refresca el conteo en cada navegación de ruta
+    this.router.events
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(() => {
+        this.proformasService.refreshPendingCount();
+      });
   }
 
   toggleSidebar(): void {

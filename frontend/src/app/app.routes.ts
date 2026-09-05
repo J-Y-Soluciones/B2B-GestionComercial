@@ -27,28 +27,38 @@ export const routes: Routes = [
         children: [
             {
                 path: 'proformas',
-                loadComponent: () => import('./features/proformas/proformas-list.component').then(m => m.ProformasListComponent),
-                title: 'Cotizador y Proformas | VortexYolTI'
+                children: [
+                    {
+                        path: '',
+                        loadComponent: () => import('./features/proformas/proformas-list.component').then(m => m.ProformasListComponent),
+                        title: 'Listado de Proformas | Sistema de Repuestos'
+                    },
+                    {
+                        path: 'create',
+                        loadComponent: () => import('./features/proformas/components/cotizador/cotizador.component').then(m => m.CotizadorComponent),
+                        title: 'Cotizador Rápido F2 | Sistema de Repuestos'
+                    }
+                ]
             },
             {
                 path: 'catalog',
                 loadComponent: () => import('./features/catalog/catalog-list.component').then(m => m.CatalogListComponent),
-                title: 'Catálogo e Inventario | VortexYolTI'
+                title: 'Catálogo e Inventario | Sistema de Repuestos'
             },
             {
                 path: 'customers',
                 loadComponent: () => import('./features/customers/customers-list.component').then(m => m.CustomersListComponent),
-                title: 'Clientes | VortexYolTI'
+                title: 'Clientes | Sistema de Repuestos'
             },
             {
                 path: 'approvals',
                 loadComponent: () => import('./features/approvals/approvals-list.component').then(m => m.ApprovalsListComponent),
-                title: 'Bandeja de Aprobaciones | VortexYolTI'
+                title: 'Bandeja de Aprobaciones | Sistema de Repuestos'
             },
             {
                 path: 'users',
                 loadComponent: () => import('./features/users/users-list.component').then(m => m.UsersListComponent),
-                title: 'Usuarios y Perfiles | VortexYolTI'
+                title: 'Usuarios y Perfiles | Sistema de Repuestos'
             },
             {
                 path: '',

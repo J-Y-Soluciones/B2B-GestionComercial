@@ -1,19 +1,19 @@
-// src/modules/customers/customers.module.ts
+// backend/src/modules/customers/customer.module.ts
 import { Module } from '@nestjs/common';
-import { CustomersController } from './infrastructure/controllers/customers.controller.js';
-import { CustomersService } from './application/services/customers.service.js';
+import { CustomerController } from './infrastructure/controllers/customers.controller.js';
+import { CustomerService } from './application/services/customers.service.js';
 import { PrismaCustomerRepository } from './infrastructure/repositories/prisma-customer.repository.js';
-import { CUSTOMER_REPOSITORY } from './domain/repositories/customer.repository.interface.js';
+import { CUSTOMER_REPOSITORY_TOKEN } from './domain/repositories/customer.repository.interface.js';
 
 @Module({
-    controllers: [CustomersController],
-    providers: [
-        CustomersService,
-        {
-            provide: CUSTOMER_REPOSITORY,
-            useClass: PrismaCustomerRepository,
-        },
-    ],
-    exports: [CustomersService],
+  controllers: [CustomerController],
+  providers: [
+    CustomerService,
+    {
+      provide: CUSTOMER_REPOSITORY_TOKEN,
+      useClass: PrismaCustomerRepository,
+    },
+  ],
+  exports: [CustomerService, CUSTOMER_REPOSITORY_TOKEN],
 })
-export class CustomersModule { }
+export class CustomerModule {}

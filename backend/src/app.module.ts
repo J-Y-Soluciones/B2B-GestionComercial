@@ -1,36 +1,29 @@
 // backend/src/app.module.ts
 import { Module } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { AuthModule } from './modules/auth/auth.module.js';
+import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from './core/prisma/prisma.module.js';
-import { CustomersModule } from './modules/customers/customers.module.js';
-import { SuppliersModule } from './modules/suppliers/suppliers.module.js';
-import { ProductsModule } from './modules/products/products.module.js';
+import { AuthModule } from './modules/auth/auth.module.js';
 import { ProformasModule } from './modules/proformas/proformas.module.js';
-
+import { CustomerModule } from './modules/customers/customers.module.js';
+import { ProductsModule } from './modules/products/products.module.js';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
     ThrottlerModule.forRoot([
       {
-        name: 'short',
         ttl: 60000,
-        limit: 10,
+        limit: 100,
       },
     ]),
     PrismaModule,
     AuthModule,
-    CustomersModule,
-    SuppliersModule,
-    ProductsModule,
     ProformasModule,
-  ],
-  providers: [
-    {
-      provide: APP_GUARD,
-      useClass: ThrottlerGuard,
-    },
+    CustomerModule,
+    ProductsModule,
   ],
 })
 export class AppModule { }

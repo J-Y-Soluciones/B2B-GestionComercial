@@ -1,4 +1,4 @@
-// backend/src/modules/proformas/application/services/proforma.service.ts
+// backend/src/modules/proformas/application/services/proformas.service.ts
 import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
 import type { IProformaRepository, ProformaWithDetails, SearchProformaFilters } from '../../domain/repositories/proforma.repository.interface.js';
 import { PROFORMA_REPOSITORY } from '../../domain/repositories/proforma.repository.interface.js';

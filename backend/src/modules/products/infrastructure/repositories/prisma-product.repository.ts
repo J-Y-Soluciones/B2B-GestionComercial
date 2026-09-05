@@ -1,143 +1,242 @@
-// src/modules/products/infrastructure/repositories/prisma-product.repository.ts
+// backend/src/modules/products/infrastructure/repositories/prisma-product.repository.ts
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../core/prisma/prisma.service.js';
 import type {
     IProductRepository,
-    ProductWithDetails,
     CreateProductData,
     UpdateProductData,
-    SearchProductFilters
+    ProductSearchParams,
+    SupplierStockInput,
 } from '../../domain/repositories/product.repository.interface.js';
-import type { Prisma } from '@prisma/client';
+import { ProductEntity } from '../../domain/entities/product.entity.js';
+import { PriceTierEntity } from '../../domain/entities/price-tier.entity.js';
+import { SupplierStockEntity } from '../../domain/entities/supplier-stock.entity.js';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class PrismaProductRepository implements IProductRepository {
     constructor(private readonly prisma: PrismaService) { }
 
-    async findById(id: string): Promise<ProductWithDetails | null> {
-        return this.prisma.product.findUnique({
+    private mapToEntity(raw: any): ProductEntity {
+        const priceTiers = (raw.priceTiers || []).map(
+            (tier: any) =>
+                new PriceTierEntity({
+                    id: tier.id,
+                    productId: tier.productId,
+                    tier: tier.tier,
+                    price: tier.price,
+                    createdAt: tier.createdAt,
+                }),
+        );
+
+        const stocks = (raw.stocks || []).map(
+            (stock: any) =>
+                new SupplierStockEntity({
+                    id: stock.id,
+                    productId: stock.productId,
+                    supplierId: stock.supplierId,
+                    supplierName: stock.supplier?.name,
+                    supplierSku: stock.supplierSku,
+                    stock: stock.stock,
+                    costPrice: stock.costPrice,
+                    updatedAt: stock.updatedAt,
+                }),
+        );
+
+        const totalStock = stocks.reduce((acc: number, curr: SupplierStockEntity) => acc + curr.stock, 0);
+
+        return new ProductEntity({
+            id: raw.id,
+            internalCode: raw.internalCode,
+            name: raw.name,
+            category: raw.category,
+            brand: raw.brand,
+            minStock: raw.minStock,
+            isActive: raw.isActive,
+            totalStock,
+            priceTiers,
+            stocks,
+            createdAt: raw.createdAt,
+            updatedAt: raw.updatedAt,
+        });
+    }
+
+    async findById(id: string): Promise<ProductEntity | null> {
+        const record = await this.prisma.product.findUnique({
             where: { id },
             include: {
                 priceTiers: { orderBy: { tier: 'asc' } },
-                stocks: { include: { supplier: true } }
+                stocks: {
+                    include: { supplier: { select: { name: true } } },
+                },
             },
         });
+        return record ? this.mapToEntity(record) : null;
     }
 
-    async findByInternalCode(internalCode: string): Promise<ProductWithDetails | null> {
-        return this.prisma.product.findUnique({
+    async findByInternalCode(internalCode: string): Promise<ProductEntity | null> {
+        const record = await this.prisma.product.findUnique({
             where: { internalCode },
             include: {
                 priceTiers: { orderBy: { tier: 'asc' } },
-                stocks: { include: { supplier: true } }
+                stocks: {
+                    include: { supplier: { select: { name: true } } },
+                },
             },
         });
+        return record ? this.mapToEntity(record) : null;
     }
 
-    async search(filters: SearchProductFilters): Promise<ProductWithDetails[]> {
+    async search(params: ProductSearchParams): Promise<ProductEntity[]> {
         const where: Prisma.ProductWhereInput = {
             isActive: true,
         };
 
-        if (filters.query) {
+        if (params.category) {
+            where.category = { equals: params.category, mode: 'insensitive' };
+        }
+
+        if (params.brand) {
+            where.brand = { equals: params.brand, mode: 'insensitive' };
+        }
+
+        if (params.query) {
             where.OR = [
-                { name: { contains: filters.query, mode: 'insensitive' } },
-                { internalCode: { contains: filters.query, mode: 'insensitive' } },
+                { internalCode: { contains: params.query, mode: 'insensitive' } },
+                { name: { contains: params.query, mode: 'insensitive' } },
             ];
         }
 
-        if (filters.brand) {
-            where.brand = { contains: filters.brand, mode: 'insensitive' };
-        }
-
-        if (filters.category) {
-            where.category = { contains: filters.category, mode: 'insensitive' };
-        }
-
-        if (filters.inStock) {
+        if (params.inStock === true) {
             where.stocks = {
-                some: { stock: { gt: 0 } }
+                some: {
+                    stock: { gt: 0 },
+                },
             };
         }
 
-        return this.prisma.product.findMany({
+        const records = await this.prisma.product.findMany({
             where,
+            take: params.limit ?? 20,
             include: {
                 priceTiers: { orderBy: { tier: 'asc' } },
-                stocks: { include: { supplier: true } }
-            },
-            take: 50,
-            orderBy: { name: 'asc' },
-        });
-    }
-
-    async create(data: CreateProductData): Promise<ProductWithDetails> {
-        return this.prisma.product.create({
-            data: {
-                internalCode: data.internalCode,
-                name: data.name,
-                category: data.category,
-                brand: data.brand,
-                ...(data.minStock !== undefined && { minStock: data.minStock }),
-                priceTiers: {
-                    create: data.priceTiers.map(pt => ({
-                        tier: pt.tier,
-                        price: pt.price,
-                    })),
+                stocks: {
+                    include: { supplier: { select: { name: true } } },
                 },
             },
-            include: {
-                priceTiers: { orderBy: { tier: 'asc' } },
-                stocks: { include: { supplier: true } }
-            },
+            orderBy: { name: 'asc' },
+        });
+
+        return records.map((r) => this.mapToEntity(r));
+    }
+
+    async create(data: CreateProductData): Promise<ProductEntity> {
+        return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+            const created = await tx.product.create({
+                data: {
+                    internalCode: data.internalCode,
+                    name: data.name,
+                    category: data.category,
+                    brand: data.brand,
+                    minStock: data.minStock ?? 5,
+                    isActive: data.isActive ?? true,
+                    priceTiers: {
+                        create: data.priceTiers.map((pt) => ({
+                            tier: pt.tier,
+                            price: new Prisma.Decimal(pt.price),
+                        })),
+                    },
+                    ...(data.stocks && data.stocks.length > 0 && {
+                        stocks: {
+                            create: data.stocks.map((st) => ({
+                                supplierId: st.supplierId,
+                                supplierSku: st.supplierSku ?? null,
+                                stock: st.stock,
+                                costPrice: new Prisma.Decimal(st.costPrice),
+                            })),
+                        },
+                    }),
+                },
+                include: {
+                    priceTiers: { orderBy: { tier: 'asc' } },
+                    stocks: {
+                        include: { supplier: { select: { name: true } } },
+                    },
+                },
+            });
+
+            return this.mapToEntity(created);
         });
     }
 
-    async update(id: string, data: UpdateProductData): Promise<ProductWithDetails> {
-        const updateInput: Prisma.ProductUpdateInput = {
-            ...(data.internalCode && { internalCode: data.internalCode }),
-            ...(data.name && { name: data.name }),
-            ...(data.category && { category: data.category }),
-            ...(data.brand && { brand: data.brand }),
-            ...(data.minStock !== undefined && { minStock: data.minStock }),
-            ...(data.isActive !== undefined && { isActive: data.isActive }),
-        };
+    async update(id: string, data: UpdateProductData): Promise<ProductEntity> {
+        return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+            if (data.priceTiers && data.priceTiers.length > 0) {
+                for (const tierData of data.priceTiers) {
+                    await tx.priceTier.upsert({
+                        where: {
+                            productId_tier: {
+                                productId: id,
+                                tier: tierData.tier,
+                            },
+                        },
+                        create: {
+                            productId: id,
+                            tier: tierData.tier,
+                            price: new Prisma.Decimal(tierData.price),
+                        },
+                        update: {
+                            price: new Prisma.Decimal(tierData.price),
+                        },
+                    });
+                }
+            }
 
-        if (data.priceTiers) {
-            updateInput.priceTiers = {
-                deleteMany: {},
-                create: data.priceTiers.map(pt => ({
-                    tier: pt.tier,
-                    price: pt.price,
-                })),
-            };
-        }
+            const updated = await tx.product.update({
+                where: { id },
+                data: {
+                    ...(data.internalCode !== undefined && { internalCode: data.internalCode }),
+                    ...(data.name !== undefined && { name: data.name }),
+                    ...(data.category !== undefined && { category: data.category }),
+                    ...(data.brand !== undefined && { brand: data.brand }),
+                    ...(data.minStock !== undefined && { minStock: data.minStock }),
+                    ...(data.isActive !== undefined && { isActive: data.isActive }),
+                },
+                include: {
+                    priceTiers: { orderBy: { tier: 'asc' } },
+                    stocks: {
+                        include: { supplier: { select: { name: true } } },
+                    },
+                },
+            });
 
-        return this.prisma.product.update({
-            where: { id },
-            data: updateInput,
-            include: {
-                priceTiers: { orderBy: { tier: 'asc' } },
-                stocks: { include: { supplier: true } }
-            },
+            return this.mapToEntity(updated);
         });
     }
 
-    async updateStock(productId: string, supplierId: string, quantity: number, costPrice: number = 0): Promise<void> {
+    async upsertSupplierStock(productId: string, stockData: SupplierStockInput): Promise<ProductEntity> {
         await this.prisma.supplierProductStock.upsert({
             where: {
-                productId_supplierId: { productId, supplierId }
-            },
-            update: {
-                stock: quantity,
-                ...(costPrice > 0 && { costPrice })
+                productId_supplierId: {
+                    productId,
+                    supplierId: stockData.supplierId,
+                },
             },
             create: {
                 productId,
-                supplierId,
-                stock: quantity,
-                costPrice
-            }
+                supplierId: stockData.supplierId,
+                supplierSku: stockData.supplierSku,
+                stock: stockData.stock,
+                costPrice: new Prisma.Decimal(stockData.costPrice),
+            },
+            update: {
+                supplierSku: stockData.supplierSku,
+                stock: stockData.stock,
+                costPrice: new Prisma.Decimal(stockData.costPrice),
+            },
         });
+
+        const refreshed = await this.findById(productId);
+        return refreshed!;
     }
 }

@@ -1,0 +1,323 @@
+<!-- frontend/src/app/features/proformas/components/cotizador/cotizador.component.html -->
+<div class="min-h-screen bg-slate-50 flex flex-col font-sans">
+    <!-- Top Bar Contextual -->
+    <header class="h-14 bg-white border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-20">
+        <div class="flex items-center space-x-3">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Comercial &bull; Cotizador
+                Rápido</span>
+            <h1 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                Cotizador &amp; Emisión de Proformas
+                <span class="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded font-mono font-bold">F2</span>
+            </h1>
+        </div>
+        <div class="flex items-center space-x-4 text-xs">
+            <div class="flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-md">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="text-slate-600 font-medium">ONLINE (SUNAT OK)</span>
+            </div>
+            <div class="text-slate-500 font-mono">
+                T.C. Vta: <strong class="text-slate-700">3.750</strong>
+            </div>
+        </div>
+    </header>
+
+    <!-- Workspace 2 Columnas -->
+    <main class="flex-1 p-6 grid grid-cols-1 xl:grid-cols-12 gap-6 max-w-[1600px] w-full mx-auto">
+        <!-- COLUMNA IZQUIERDA: Flujo Operativo (8 cols) -->
+        <div class="xl:col-span-8 space-y-6">
+            <!-- 1. Selector de Cliente -->
+            <section class="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                        <span>1. Cuenta &amp; Razón Social</span>
+                    </h2>
+                    @if (selectedCustomer()) {
+                    <button (click)="clearCustomer()"
+                        class="text-xs text-emerald-600 hover:text-emerald-700 font-medium cursor-pointer">
+                        Cambiar cliente
+                    </button>
+                    }
+                </div>
+
+                @if (!selectedCustomer()) {
+                <div class="relative">
+                    <input type="text" [ngModel]="customerQuery()" (ngModelChange)="onCustomerQueryChange($event)"
+                        placeholder="Buscar por DNI (8 dígitos), RUC (11 dígitos) o Razón Social..."
+                        class="w-full text-sm border border-slate-300 rounded-lg px-3.5 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all" />
+                    @if (customerSearchResults().length > 0) {
+                    <div
+                        class="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-30 overflow-hidden">
+                        @for (c of customerSearchResults(); track c.id) {
+                        <button type="button" (click)="selectCustomer(c)"
+                            class="w-full text-left px-4 py-3 hover:bg-emerald-50/50 border-b border-slate-100 last:border-b-0 flex items-center justify-between cursor-pointer">
+                            <div>
+                                <p class="text-sm font-semibold text-slate-800">{{ c.name }}</p>
+                                <p class="text-xs text-slate-500 font-mono">{{ c.documentNumber }} &bull; {{ c.type }}
+                                </p>
+                            </div>
+                            <span class="text-xs text-emerald-600 font-medium">Seleccionar &rarr;</span>
+                        </button>
+                        }
+                    </div>
+                    }
+                </div>
+                } @else {
+                <!-- Ficha Cliente Seleccionado -->
+                <div
+                    class="bg-emerald-50/40 border border-emerald-200 rounded-lg p-4 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="text-sm font-bold text-slate-900">{{ selectedCustomer()?.name }}</h3>
+                            <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[11px] font-bold rounded">
+                                {{ selectedCustomer()?.type === 'BUSINESS' ? 'Factura Apta' : 'Boleta Apta' }}
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-600 font-mono mt-0.5">
+                            RUC/DNI: <strong>{{ selectedCustomer()?.documentNumber }}</strong>
+                            @if (selectedCustomer()?.phone) { &bull; Tel: {{ selectedCustomer()?.phone }} }
+                        </p>
+                        @if (selectedCustomer()?.address) {
+                        <p class="text-xs text-slate-500 mt-0.5">{{ selectedCustomer()?.address }}</p>
+                        }
+                    </div>
+                    <div class="text-right shrink-0">
+                        <span class="text-[11px] font-medium text-slate-500 block uppercase">Condición Comercial</span>
+                        <span class="text-xs font-bold text-emerald-700">Contado / Mostrador</span>
+                    </div>
+                </div>
+                }
+            </section>
+
+            <!-- 2. Catálogo Express & Existencias -->
+            <section class="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-sm font-bold text-slate-800">2. Catálogo Express &amp; Consulta de Existencias</h2>
+                </div>
+
+                <!-- Filtros Categoría -->
+                <div class="flex items-center gap-1.5 overflow-x-auto pb-2 mb-3 scrollbar-none">
+                    @for (cat of categories; track cat) {
+                    <button type="button" (click)="setCategory(cat)" [class]="productCategory() === cat
+                  ? 'bg-emerald-800 text-white font-medium'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+                        class="px-3 py-1 rounded-md text-xs whitespace-nowrap cursor-pointer transition-colors">
+                        {{ cat }}
+                    </button>
+                    }
+                </div>
+
+                <!-- Input Búsqueda -->
+                <input type="text" [ngModel]="productQuery()" (ngModelChange)="onProductQueryChange($event)"
+                    placeholder="Buscar por SKU interno, nombre o marca (ej. Bosch, Filtro, DSC-001)..."
+                    class="w-full text-sm border border-slate-300 rounded-lg px-3.5 py-2.5 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all mb-4" />
+
+                <!-- Resultados Rápidos -->
+                <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    @for (prod of productSearchResults(); track prod.id) {
+                    <div
+                        class="border border-slate-200 rounded-lg p-3 hover:border-emerald-300 bg-white flex flex-col md:flex-row md:items-center justify-between gap-3 transition-colors">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2">
+                                <span
+                                    class="font-mono text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">{{
+                                    prod.internalCode }}</span>
+                                <span class="text-sm font-bold text-slate-800">{{ prod.name }}</span>
+                                <span class="text-xs text-slate-400">&bull; {{ prod.brand }}</span>
+                            </div>
+                            <!-- Pill Multiproveedor -->
+                            <div class="flex flex-wrap items-center gap-1.5 text-[11px]">
+                                <span class="text-slate-500">Stock:</span>
+                                @for (s of prod.stocks; track s.id) {
+                                <span class="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-mono">{{
+                                    s.supplierName || 'Prov' }}: {{ s.stock }}</span>
+                                }
+                                <span
+                                    [class]="prod.totalStock > prod.minStock ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'"
+                                    class="px-2 py-0.5 rounded font-mono font-bold">
+                                    Total: {{ prod.totalStock }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 shrink-0">
+                            <div class="text-right">
+                                <span class="text-[11px] text-slate-400 block font-mono">T1 Base</span>
+                                <span class="font-mono text-sm font-bold text-slate-800">S/ {{ getTierPrice(prod, 1) |
+                                    number:'1.2-2' }}</span>
+                            </div>
+                            <button type="button" (click)="addToCart(prod)"
+                                class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs">
+                                <span>+ Agregar</span>
+                            </button>
+                        </div>
+                    </div>
+                    }
+                </div>
+            </section>
+
+            <!-- 3. Matriz de Repuestos en Cotización Actual -->
+            <section class="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                        <span>3. Matriz de Repuestos en Cotización Actual</span>
+                        <span class="text-xs font-normal text-slate-400 font-mono">(Moneda: Soles PEN - S/)</span>
+                    </h2>
+                    @if (cart().length > 0) {
+                    <button (click)="cart.set([])"
+                        class="text-xs text-rose-600 hover:text-rose-700 cursor-pointer font-medium">
+                        Vaciar tabla
+                    </button>
+                    }
+                </div>
+
+                @if (cart().length === 0) {
+                <div class="py-12 text-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-lg">
+                    No hay repuestos agregados a la cotización actual.
+                </div>
+                } @else {
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-200 text-slate-400 uppercase text-[10px] tracking-wider">
+                                <th class="pb-2 font-semibold">SKU / Repuesto</th>
+                                <th class="pb-2 font-semibold text-center">Cant.</th>
+                                <th class="pb-2 font-semibold">Nivel de Precio Aplicado</th>
+                                <th class="pb-2 font-semibold text-right">Subtotal</th>
+                                <th class="pb-2 font-semibold text-center">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @for (item of cart(); track item.product.id; let idx = $index) {
+                            <tr [class]="item.requiresApproval ? 'bg-amber-50/40 border-l-4 border-amber-400' : ''"
+                                class="hover:bg-slate-50/80 transition-colors">
+                                <td class="py-3 pr-2">
+                                    <div class="font-mono font-bold text-slate-700">{{ item.product.internalCode }}
+                                    </div>
+                                    <div class="font-semibold text-slate-800">{{ item.product.name }}</div>
+                                    @if (item.requiresApproval) {
+                                    <span
+                                        class="inline-block mt-1 text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
+                                        ⚠️ Requiere Aprobación Gerencial (Margen Mínimo)
+                                    </span>
+                                    }
+                                </td>
+                                <td class="py-3 px-2 text-center">
+                                    <div class="inline-flex items-center border border-slate-300 rounded-md bg-white">
+                                        <button (click)="updateQuantity(idx, item.quantity - 1)"
+                                            class="px-2 py-1 text-slate-600 hover:bg-slate-100 cursor-pointer font-bold">-</button>
+                                        <span class="px-2 py-1 font-mono font-bold text-slate-800">{{ item.quantity
+                                            }}</span>
+                                        <button (click)="updateQuantity(idx, item.quantity + 1)"
+                                            class="px-2 py-1 text-slate-600 hover:bg-slate-100 cursor-pointer font-bold">+</button>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-2">
+                                    <div class="inline-flex rounded-lg p-0.5 bg-slate-100 border border-slate-200">
+                                        <button type="button" (click)="setPriceTier(idx, 1)"
+                                            [class]="item.selectedTier === 1 ? 'bg-white shadow-xs font-bold text-slate-900' : 'text-slate-500 hover:text-slate-800'"
+                                            class="px-2 py-1 text-[11px] rounded-md transition-all cursor-pointer font-mono">
+                                            T1: S/ {{ getTierPrice(item.product, 1) | number:'1.2-2' }}
+                                        </button>
+                                        <button type="button" (click)="setPriceTier(idx, 2)"
+                                            [class]="item.selectedTier === 2 ? 'bg-white shadow-xs font-bold text-slate-900' : 'text-slate-500 hover:text-slate-800'"
+                                            class="px-2 py-1 text-[11px] rounded-md transition-all cursor-pointer font-mono">
+                                            T2: S/ {{ getTierPrice(item.product, 2) | number:'1.2-2' }}
+                                        </button>
+                                        <button type="button" (click)="setPriceTier(idx, 3)"
+                                            [class]="item.selectedTier === 3 ? 'bg-amber-600 text-white font-bold shadow-xs' : 'text-slate-500 hover:text-slate-800'"
+                                            class="px-2 py-1 text-[11px] rounded-md transition-all cursor-pointer font-mono">
+                                            T3 Esp: S/ {{ getTierPrice(item.product, 3) | number:'1.2-2' }}
+                                        </button>
+                                    </div>
+                                </td>
+                                <td class="py-3 pl-2 text-right font-mono font-bold text-slate-900 text-sm">
+                                    S/ {{ item.subtotal | number:'1.2-2' }}
+                                </td>
+                                <td class="py-3 text-center">
+                                    <button (click)="removeFromCart(idx)"
+                                        class="text-slate-400 hover:text-rose-600 cursor-pointer p-1">
+                                        &times;
+                                    </button>
+                                </td>
+                            </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                }
+            </section>
+        </div>
+
+        <!-- COLUMNA DERECHA: Resumen Financiero & Acciones (4 cols Sticky) -->
+        <div class="xl:col-span-4">
+            <div class="bg-white rounded-xl border border-slate-200 p-6 shadow-xs sticky top-20 space-y-6">
+                <div>
+                    <span class="text-xs font-mono font-semibold uppercase tracking-wider text-slate-400">Documento
+                        Proforma</span>
+                    <div class="flex items-center justify-between mt-1">
+                        <span class="font-mono text-base font-bold text-slate-900">PROF-2026-AUTOGEN</span>
+                        <span
+                            class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[11px] font-bold rounded">BORRADOR</span>
+                    </div>
+                </div>
+
+                <div class="space-y-2 border-t border-b border-slate-100 py-4 text-xs font-mono">
+                    <div class="flex justify-between text-slate-500">
+                        <span>Subtotal Neto Gravado</span>
+                        <span class="text-slate-800">S/ {{ subtotalNeto() | number:'1.2-2' }}</span>
+                    </div>
+                    <div class="flex justify-between text-slate-500">
+                        <span>I.G.V. Oficial (18%)</span>
+                        <span class="text-slate-800">S/ {{ igv() | number:'1.2-2' }}</span>
+                    </div>
+                </div>
+
+                <div>
+                    <span class="text-xs font-semibold text-slate-500 block uppercase">Total Cotización (PEN)</span>
+                    <div class="font-mono text-3xl font-extrabold text-emerald-700 tracking-tight mt-0.5">
+                        S/ {{ total() | number:'1.2-2' }}
+                    </div>
+                    <span class="text-[11px] text-slate-400 font-mono block mt-0.5">Incluye I.G.V. Oficial</span>
+                </div>
+
+                <!-- Alerta Regla Tier 3 -->
+                @if (requiresManagerApproval()) {
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-900 space-y-1">
+                    <p class="font-bold flex items-center gap-1.5">
+                        <span>⚠️ Requiere Aprobación de Gerencia</span>
+                    </p>
+                    <p class="text-[11px] text-amber-700 leading-relaxed">
+                        Esta proforma contiene repuestos con Nivel T3 Especial. Al emitir, pasará a estado
+                        <strong>PENDIENTE DE APROBACIÓN</strong> antes del despacho.
+                    </p>
+                </div>
+                } @else {
+                <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs text-emerald-900">
+                    <p class="font-semibold text-emerald-800">Proforma Válida por 48 Horas</p>
+                    <p class="text-[11px] text-emerald-700 mt-0.5">Lista para emisión y entrega inmediata al cliente.
+                    </p>
+                </div>
+                }
+
+                <!-- Botones de Acción -->
+                <div class="space-y-2 pt-2">
+                    <button type="button" (click)="submitProforma()"
+                        [disabled]="isSubmitting() || cart().length === 0 || !selectedCustomer()"
+                        class="w-full h-11 bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold text-sm rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-all shadow-sm">
+                        @if (isSubmitting()) {
+                        <span>Emitiendo...</span>
+                        } @else {
+                        <span>&gt; Emitir Proforma (F2)</span>
+                        }
+                    </button>
+                </div>
+
+                <!-- Micro Footer Operativo -->
+                <footer class="pt-4 border-t border-slate-100 text-center">
+                    <span class="text-[10px] text-slate-400 tracking-tight">
+                        Sistema de Repuestos &bull; Powered by VortexYolTI
+                    </span>
+                </footer>
+            </div>
+        </div>
+    </main>
+</div>

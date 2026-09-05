@@ -1,10 +1,31 @@
-// src/modules/customers/domain/repositories/customer.repository.interface.ts
-import { Customer, Prisma } from '@prisma/client';
+// backend/src/modules/customers/domain/repositories/customer.repository.interface.ts
+import type { CustomerEntity } from '../entities/customer.entity.js';
+import type { CustomerType } from '@prisma/client';
 
-export const CUSTOMER_REPOSITORY = Symbol('CUSTOMER_REPOSITORY');
+export interface CreateCustomerData {
+  type: CustomerType;
+  documentNumber: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+}
+
+export interface UpdateCustomerData {
+  type?: CustomerType;
+  documentNumber?: string;
+  name?: string;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+}
 
 export interface ICustomerRepository {
-    findByDocument(documentNumber: string): Promise<Customer | null>;
-    search(query: string): Promise<Customer[]>;
-    create(data: Prisma.CustomerCreateInput): Promise<Customer>;
+  findById(id: string): Promise<CustomerEntity | null>;
+  findByDocumentNumber(documentNumber: string): Promise<CustomerEntity | null>;
+  search(query: string, limit?: number): Promise<CustomerEntity[]>;
+  create(data: CreateCustomerData): Promise<CustomerEntity>;
+  update(id: string, data: UpdateCustomerData): Promise<CustomerEntity>;
 }
+
+export const CUSTOMER_REPOSITORY_TOKEN = Symbol('ICustomerRepository');

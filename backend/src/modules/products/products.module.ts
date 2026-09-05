@@ -1,21 +1,19 @@
-// src/modules/products/products.module.ts
+// backend/src/modules/products/products.module.ts
 import { Module } from '@nestjs/common';
 import { ProductController } from './infrastructure/controllers/product.controller.js';
 import { ProductService } from './application/services/products.service.js';
 import { PrismaProductRepository } from './infrastructure/repositories/prisma-product.repository.js';
-import { PRODUCT_REPOSITORY } from './domain/repositories/product.repository.interface.js';
-import { PrismaModule } from '../../core/prisma/prisma.module.js';
+import { PRODUCT_REPOSITORY_TOKEN } from './domain/repositories/product.repository.interface.js';
 
 @Module({
-    imports: [PrismaModule],
     controllers: [ProductController],
     providers: [
+        ProductService,
         {
-            provide: PRODUCT_REPOSITORY,
+            provide: PRODUCT_REPOSITORY_TOKEN,
             useClass: PrismaProductRepository,
         },
-        ProductService,
     ],
-    exports: [ProductService, PRODUCT_REPOSITORY],
+    exports: [ProductService, PRODUCT_REPOSITORY_TOKEN],
 })
 export class ProductsModule { }

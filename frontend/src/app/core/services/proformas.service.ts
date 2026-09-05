@@ -1,7 +1,6 @@
-// frontend/src/app/core/services/proformas.service.ts
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 
 export interface ProformaItemDto {
     id: string;
@@ -19,7 +18,7 @@ export interface ProformaItemDto {
 export interface ProformaDto {
     id: string;
     code: string;
-    status: 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'EXPIRED';
+    status: 'DRAFT' | 'PENDING' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'EXPIRED';
     priceTier: string;
     subtotal: number;
     igv: number;
@@ -46,19 +45,36 @@ export class ProformasService {
     private readonly http = inject(HttpClient);
     private readonly API_URL = 'http://localhost:3000/proformas';
 
-    // Obtener todas las proformas (o filtrar por status)
+    // Estado reactivo compartido en toda la aplicación
+    readonly pendingApprovalsCount = signal<number>(0);
+
     getProformas(status?: string): Observable<ProformaDto[]> {
         const url = status ? `${this.API_URL}?status=${status}` : this.API_URL;
-        return this.http.get<ProformaDto[]>(url);
+        return this.http.get<ProformaDto[]>(url).pipe(
+            tap((data) => {
+                if (status === 'PENDING_APPROVAL') {
+                    this.pendingApprovalsCount.set(data.length);
+                }
+            })
+        );
     }
 
-    // Aprobar proforma Tier 3
+    refreshPendingCount(): void {
+        this.getProformas('PENDING_APPROVAL').subscribe({
+            next: (data) => this.pendingApprovalsCount.set(data.length),
+            error: () => this.pendingApprovalsCount.set(0)
+        });
+    }
+
     approveProforma(id: string): Observable<ProformaDto> {
-        return this.http.patch<ProformaDto>(`${this.API_URL}/${id}/approve`, {});
+        return this.http.patch<ProformaDto>(`${this.API_URL}/${id}/approve`, {}).pipe(
+            tap(() => this.refreshPendingCount())
+        );
     }
 
-    // Rechazar proforma con motivo
     rejectProforma(id: string, reason: string): Observable<ProformaDto> {
-        return this.http.patch<ProformaDto>(`${this.API_URL}/${id}/reject`, { reason });
+        return this.http.patch<ProformaDto>(`${this.API_URL}/${id}/reject`, { reason }).pipe(
+            tap(() => this.refreshPendingCount())
+        );
     }
 }
