@@ -21,7 +21,7 @@ export class SupplierController {
     }
 
     @Get()
-    @Roles(Role.ADMIN, Role.MANAGER)
+    @Roles(Role.ADMIN, Role.MANAGER, Role.WAREHOUSE)
     async findAll(): Promise<Supplier[]> {
         return this.supplierService.findAll();
     }

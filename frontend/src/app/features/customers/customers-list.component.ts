@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { CustomersApiService } from '../../core/services/customers-api.service';
+import { CustomersApiService } from '../../core/api/customers-api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
 import { CustomerModalComponent } from './components/customer-modal.component';

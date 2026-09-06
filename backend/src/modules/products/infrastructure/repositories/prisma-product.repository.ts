@@ -104,6 +104,7 @@ export class PrismaProductRepository implements IProductRepository {
             where.OR = [
                 { internalCode: { contains: params.query, mode: 'insensitive' } },
                 { name: { contains: params.query, mode: 'insensitive' } },
+                { brand: { contains: params.query, mode: 'insensitive' } },
             ];
         }
 

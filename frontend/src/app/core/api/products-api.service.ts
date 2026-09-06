@@ -44,4 +44,17 @@ export class ProductsApiService {
     findById(id: string): Observable<Product> {
         return this.http.get<Product>(`${this.baseUrl}/${id}`);
     }
+
+    // Añadir a ProductsApiService si aún no lo tienes:
+    setSupplierStock(productId: string, payload: { supplierId: string; supplierSku?: string | null; stock: number; costPrice: number }): Observable<Product> {
+        return this.http.put<Product>(`http://localhost:3000/products/${productId}/stock`, payload);
+    }
+
+    create(payload: any): Observable<Product> {
+        return this.http.post<Product>('http://localhost:3000/products', payload);
+    }
+
+    update(id: string, payload: any): Observable<Product> {
+        return this.http.patch<Product>(`http://localhost:3000/products/${id}`, payload);
+    }
 }

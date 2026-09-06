@@ -42,35 +42,15 @@ export class ProductService {
     }
 
     async search(filters: SearchProductDto, limit = 20): Promise<ProductEntity[]> {
-        const hasQuery = Boolean(filters.query?.trim());
+        const queryClean = filters.query?.trim() || undefined;
 
-        const results = await this.productRepository.search({
-            query: hasQuery ? undefined : undefined,
+        return this.productRepository.search({
+            query: queryClean,
             category: filters.category?.trim() || undefined,
             brand: filters.brand?.trim() || undefined,
             inStock: filters.inStock,
-            limit: hasQuery ? 100 : limit,
+            limit,
         });
-
-        if (!hasQuery) {
-            return results.slice(0, limit);
-        }
-
-        const normalizedQuery = normalizeText(filters.query!);
-
-        return results
-            .filter((product) => {
-                const name = normalizeText(product.name);
-                const code = normalizeText(product.internalCode);
-                const brand = normalizeText(product.brand);
-
-                return (
-                    name.includes(normalizedQuery) ||
-                    code.includes(normalizedQuery) ||
-                    brand.includes(normalizedQuery)
-                );
-            })
-            .slice(0, limit);
     }
 
     async create(dto: CreateProductDto): Promise<ProductEntity> {
