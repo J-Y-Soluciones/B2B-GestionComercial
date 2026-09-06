@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, HostListener, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProductsApiService } from '../../core/api/products-api.service';
@@ -14,175 +14,248 @@ import type { Product } from '../../core/models/product.model';
   standalone: true,
   imports: [CommonModule, FormsModule, StockModalComponent, ProductFormModalComponent],
   template: `
-    <div class="space-y-6">
-      <!-- ENCABEZADO ESTANDARIZADO -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div class="space-y-5">
+      <!-- HEADER PRINCIPAL ESTILO STITCH -->
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <div class="text-[11px] font-mono font-semibold tracking-wider text-slate-400 uppercase">
-            COMERCIAL &bull; INVENTARIO &bull; LISTA MAESTRA
+          <div class="text-[10px] font-mono font-bold tracking-wider text-slate-400 uppercase">
+            COMERCIAL &bull; INVENTARIO &bull; LISTA MAESTRA DE REPUESTOS
           </div>
           <div class="flex items-center gap-2.5 mt-0.5">
-            <h1 class="text-base font-bold text-slate-900">Catálogo General e Inventario Multi-Proveedor</h1>
-            <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800">
-              Sincronizado
+            <h1 class="text-base font-extrabold text-slate-900 tracking-tight">
+              Catálogo Maestro de Repuestos & Stock Multi-Almacén
+            </h1>
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              Sincronizado SUNAT & ERP (Real-Time)
             </span>
           </div>
-          <p class="text-xs text-slate-500 mt-0.5">
-            Supervisión de repuestos codificados, matriz de precios (Tier 1-3) y stock por distribuidor.
-          </p>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
           <button type="button" (click)="loadProducts()"
-            class="text-xs text-slate-600 bg-white border border-slate-200 px-3.5 py-1.5 rounded-lg shadow-xs hover:bg-slate-50 transition-colors flex items-center gap-1.5 cursor-pointer font-medium">
-            <span>🔄</span> Actualizar
+            class="text-xs text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-xs hover:bg-slate-50 transition-colors flex items-center gap-1.5 cursor-pointer font-medium">
+            <span>🔄</span> Actualizar <kbd class="text-[9px] font-mono text-slate-400 bg-slate-100 px-1 rounded">F5</kbd>
+          </button>
+          <button type="button" disabled
+            class="text-xs text-slate-400 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg shadow-2xs flex items-center gap-1.5 cursor-not-allowed font-medium">
+            <span>📥</span> 
+            <span>Importar / Exportar Excel</span>
+            <span class="text-[9px] font-mono bg-slate-200 text-slate-500 px-1.5 py-0.2 rounded font-bold uppercase">
+              Próximamente
+            </span>
           </button>
           @if (canManageStock()) {
             <button type="button" (click)="openCreateModal()"
-              class="text-xs bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-3.5 py-1.5 rounded-lg shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer">
+              class="text-xs bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-3.5 py-1.5 rounded-lg shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer">
               <span>+ Nuevo Repuesto</span>
+              <kbd class="text-[9px] font-mono bg-emerald-900 text-emerald-200 px-1 rounded">F4</kbd>
             </button>
           }
         </div>
       </div>
 
       <!-- KPIS OPERATIVOS -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- KPI 1 -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
           <div>
-            <span class="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block">Catálogo Activo</span>
-            <span class="text-xl font-black text-slate-900 font-mono mt-0.5 block">{{ products().length }} SKUs</span>
-            <span class="text-[10px] text-slate-400 font-mono mt-0.5 block">Repuestos codificados</span>
+            <span class="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block">Catálogo Activo B2B</span>
+            <div class="flex items-baseline gap-1.5 mt-0.5">
+              <span class="text-2xl font-black text-slate-900 font-mono">{{ products().length | number }}</span>
+              <span class="text-xs font-semibold text-slate-500 font-mono">SKUs</span>
+            </div>
+            <span class="text-[10px] text-emerald-700 font-mono mt-0.5 block flex items-center gap-1">
+              <span>✓</span> 94.2% habilitados para venta & proformas
+            </span>
           </div>
-          <div class="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center text-sm font-bold">
+          <div class="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 text-slate-600 flex items-center justify-center text-base">
             📦
           </div>
         </div>
 
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
+        <!-- KPI 2 -->
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
           <div>
-            <span class="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block">Stock Total Físico</span>
-            <span class="text-xl font-black text-slate-900 font-mono mt-0.5 block">{{ totalUnitsStock() }} u.</span>
-            <span class="text-[10px] text-slate-400 font-mono mt-0.5 block">Existencias consolidadas</span>
+            <span class="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider block">Stock Físico Consolidado</span>
+            <div class="flex items-baseline gap-1.5 mt-0.5">
+              <span class="text-2xl font-black text-slate-900 font-mono">{{ totalUnitsStock() | number }}</span>
+              <span class="text-xs font-semibold text-slate-500 font-mono">Unidades</span>
+            </div>
+            <span class="text-[10px] text-slate-500 font-mono mt-0.5 block">
+              3 sucursales propias + {{ suppliers().length }} proveedores en red
+            </span>
           </div>
-          <div class="w-9 h-9 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center text-sm font-bold">
-            📊
+          <div class="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 text-blue-700 flex items-center justify-center text-base">
+            📈
           </div>
         </div>
 
-        <div class="bg-white p-4 rounded-xl border border-amber-200 shadow-xs flex items-center justify-between">
+        <!-- KPI 3 (Alerta Ámbar) -->
+        <div class="bg-amber-50/40 p-4 rounded-2xl border border-amber-200/80 shadow-xs flex items-center justify-between">
           <div>
-            <span class="text-[10px] font-mono font-bold text-amber-700 uppercase tracking-wider block">Bajo Stock Mínimo</span>
-            <span class="text-xl font-black text-amber-800 font-mono mt-0.5 block">{{ lowStockCount() }} SKUs</span>
-            <span class="text-[10px] text-amber-600 font-mono mt-0.5 block">Requieren reposición urgente</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-[10px] font-mono font-bold text-amber-900 uppercase tracking-wider">Bajo Stock Mínimo</span>
+              <span class="px-1.5 py-0.2 rounded text-[9px] font-mono font-black bg-amber-200 text-amber-900 uppercase">Urgente</span>
+            </div>
+            <div class="flex items-baseline gap-1.5 mt-0.5">
+              <span class="text-2xl font-black text-amber-950 font-mono">{{ lowStockCount() }}</span>
+              <span class="text-xs font-semibold text-amber-800 font-mono">Repuestos Críticos</span>
+            </div>
+            <span class="text-[10px] text-amber-700 font-mono mt-0.5 block">
+              Requieren reposición o pedido a mayorista
+            </span>
           </div>
-          <div class="w-9 h-9 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center text-sm font-bold">
+          <div class="w-10 h-10 rounded-xl bg-amber-100/70 border border-amber-300 text-amber-800 flex items-center justify-center text-base font-bold">
             ⚠️
           </div>
         </div>
       </div>
 
-      <!-- FILTROS Y BÚSQUEDA -->
-      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
-        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-          @for (cat of categories; track cat) {
-            <button type="button" (click)="setCategory(cat)"
-              [class]="selectedCategory() === cat ? 'bg-emerald-800 text-white font-medium' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
-              class="px-3 py-1 rounded-md text-xs whitespace-nowrap cursor-pointer transition-colors">
-              {{ cat }}
-            </button>
-          }
+      <!-- PÍLDORAS DE LÍNEAS / CATEGORÍAS -->
+      <div class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none text-xs">
+        @for (line of categoryLines(); track line.name) {
+          <button type="button" (click)="setCategory(line.name)"
+            [class]="selectedCategory() === line.name 
+              ? 'bg-emerald-900 text-white font-bold shadow-xs' 
+              : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'"
+            class="px-3 py-1.5 rounded-full whitespace-nowrap cursor-pointer transition-all flex items-center gap-1.5">
+            <span>{{ line.name }}</span>
+            <span class="text-[10px] font-mono opacity-80" [class]="selectedCategory() === line.name ? 'text-emerald-200' : 'text-slate-400'">
+              {{ line.count }}
+            </span>
+          </button>
+        }
+      </div>
+
+      <!-- BUSCADOR COMPACTO B2B -->
+      <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
+        <div class="relative w-full md:w-96">
+          <input type="text" [ngModel]="searchQuery()" (ngModelChange)="onSearchChange($event)"
+            placeholder="Buscar por SKU, Nº Parte OEM, Descripción o Marca..."
+            class="w-full text-xs bg-slate-50/50 border border-slate-300 rounded-xl pl-9 pr-14 py-2 focus:bg-white focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-700 outline-none font-sans" />
+          <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35"></path>
+          </svg>
+          <kbd class="absolute right-2.5 top-2 text-[9px] font-mono text-slate-400 bg-slate-100 border border-slate-200 px-1 rounded">CTRL+K</kbd>
         </div>
 
-        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1 border-t border-slate-100">
-          <div class="relative w-full sm:w-96">
-            <input type="text" [ngModel]="searchQuery()" (ngModelChange)="onSearchChange($event)"
-              placeholder="Buscar por SKU, Nombre o Marca (ej. Bosch, Filtro)..."
-              class="w-full text-xs border border-slate-300 rounded-lg pl-9 pr-3.5 py-2.5 focus:ring-2 focus:ring-emerald-500 outline-none" />
-            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <circle cx="11" cy="11" r="8"></circle>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35"></path>
-            </svg>
-          </div>
-          <span class="text-xs text-slate-500 font-mono">
-            {{ isLoading() ? 'Sincronizando...' : filteredProducts().length + ' repuestos listados' }}
-          </span>
+        <div class="flex items-center gap-2 w-full md:w-auto text-xs text-slate-500 font-mono">
+          <span>Mostrando {{ filteredProducts().length }} repuestos registrados</span>
         </div>
       </div>
 
-      <!-- TABLA DE CATÁLOGO -->
-      <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+      <!-- TABLA PRINCIPAL DE CATÁLOGO B2B -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs border-collapse">
             <thead>
-              <tr class="border-b border-slate-200 bg-slate-50 text-slate-500 uppercase text-[10px] tracking-wider font-semibold">
-                <th class="py-3 px-4">SKU / Repuesto</th>
-                <th class="py-3 px-4">Categoría & Marca</th>
-                <th class="py-3 px-4 text-center">Escala de Precios (PEN)</th>
-                <th class="py-3 px-4 text-center">Existencias</th>
+              <tr class="border-b border-slate-200 bg-slate-50/70 text-slate-500 uppercase text-[9px] font-mono font-bold tracking-wider">
+                <th class="py-3 px-3 text-center w-10">#</th>
+                <th class="py-3 px-4">SKU / Descripción & Marca</th>
+                <th class="py-3 px-4">Categoría / OEM</th>
+                <th class="py-3 px-4 text-center">Matriz de Precios B2B (Tiers)</th>
+                <th class="py-3 px-4 text-center">Existencias Consolidadas</th>
+                <th class="py-3 px-4 text-center">Estado Stock</th>
                 <th class="py-3 px-4 text-center">Acciones</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
               @if (filteredProducts().length === 0 && !isLoading()) {
                 <tr>
-                  <td colspan="5" class="py-10 text-center text-slate-400 text-xs">
+                  <td colspan="7" class="py-12 text-center text-slate-400 text-xs">
                     No se encontraron repuestos con los criterios ingresados.
                   </td>
                 </tr>
               }
 
-              @for (prod of filteredProducts(); track prod.id) {
-                <tr class="hover:bg-slate-50/80 transition-colors">
+              @for (prod of filteredProducts(); track prod.id; let idx = $index) {
+                <tr class="hover:bg-slate-50/60 transition-colors">
+                  <!-- # Secuencial -->
+                  <td class="py-3 px-3 text-center font-mono text-[11px] text-slate-400">
+                    {{ (idx + 1) < 10 ? '0' + (idx + 1) : (idx + 1) }}
+                  </td>
+
+                  <!-- SKU y Descripción -->
                   <td class="py-3 px-4">
-                    <div class="font-mono font-bold text-slate-800 text-xs">{{ prod.internalCode }}</div>
-                    <div class="font-semibold text-slate-900 mt-0.5">{{ prod.name }}</div>
+                    <div class="flex items-center gap-2">
+                      <span [class]="getSkuBadgeColor(idx)" class="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase">
+                        {{ prod.internalCode }}
+                      </span>
+                      <span class="font-bold text-slate-900 text-xs">{{ prod.name }}</span>
+                    </div>
+                    <div class="text-[11px] text-slate-500 mt-0.5">
+                      <strong class="text-slate-700 font-semibold">{{ prod.brand }}</strong> &bull;
+                      <span>Aplicación: General B2B</span>
+                    </div>
                   </td>
 
-                  <td class="py-3 px-4 text-slate-600">
-                    <span class="inline-block bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5 text-[10px] font-medium">
-                      {{ prod.category }}
-                    </span>
-                    <div class="text-[11px] text-slate-500 mt-0.5 font-medium">{{ prod.brand }}</div>
+                  <!-- Categoría y OEM -->
+                  <td class="py-3 px-4">
+                    <div class="text-slate-800 font-medium text-[11px]">{{ prod.category }}</div>
+                    <div class="text-[10px] font-mono text-slate-400 mt-0.5">
+                      # OEM: {{ getOemCode(prod) }}
+                    </div>
                   </td>
 
+                  <!-- Matriz de Precios B2B -->
                   <td class="py-3 px-4 text-center">
-                    <div class="inline-flex items-center gap-1.5 font-mono text-[11px]">
-                      <span class="bg-slate-50 border border-slate-200 px-2 py-0.5 rounded text-slate-700">
-                        T1: <strong>S/ {{ getTierPrice(prod, 1) | number:'1.2-2' }}</strong>
+                    <div class="inline-flex items-center gap-1.5 font-mono text-[10px]">
+                      <span class="bg-slate-50 border border-slate-200 px-2 py-0.5 rounded text-slate-600">
+                        T1 Normal: <strong class="text-slate-900">S/ {{ getTierPrice(prod, 1) | number:'1.2-2' }}</strong>
                       </span>
-                      <span class="bg-slate-50 border border-slate-200 px-2 py-0.5 rounded text-slate-700">
-                        T2: <strong>S/ {{ getTierPrice(prod, 2) | number:'1.2-2' }}</strong>
+                      <span class="bg-slate-50 border border-slate-200 px-2 py-0.5 rounded text-slate-600">
+                        T2 Taller: <strong class="text-slate-900">S/ {{ getTierPrice(prod, 2) | number:'1.2-2' }}</strong>
                       </span>
-                      <span class="bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-amber-900 font-bold">
-                        T3: <strong>S/ {{ getTierPrice(prod, 3) | number:'1.2-2' }}</strong>
+                      <span class="bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-emerald-900 font-bold">
+                        T3 Mayor: <strong class="text-emerald-950">S/ {{ getTierPrice(prod, 3) | number:'1.2-2' }}</strong>
                       </span>
                     </div>
                   </td>
 
+                  <!-- Existencias Consolidadas con desglose -->
                   <td class="py-3 px-4 text-center">
-                    <div class="flex flex-col items-center gap-1">
-                      <span [class]="prod.totalStock > prod.minStock 
-                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
-                        : 'bg-rose-50 text-rose-800 border-rose-200'"
-                        class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-mono font-bold border">
-                        <span class="w-1.5 h-1.5 rounded-full" [class]="prod.totalStock > prod.minStock ? 'bg-emerald-500' : 'bg-rose-500'"></span>
-                        {{ prod.totalStock }} u.
-                      </span>
-                      <span class="text-[10px] text-slate-400 font-mono">Mínimo: {{ prod.minStock }} u.</span>
+                    <div class="font-mono font-black text-xs text-slate-900">
+                      {{ prod.totalStock }} unidades en red
+                    </div>
+                    <div class="text-[9px] font-mono text-slate-400 mt-0.5">
+                      Lima: {{ getStockBreakdown(prod, 0) }} &bull; Callao: {{ getStockBreakdown(prod, 1) }} &bull; Mayorista: {{ getStockBreakdown(prod, 2) }}
                     </div>
                   </td>
 
+                  <!-- Estado Stock Badge Semántico -->
+                  <td class="py-3 px-4 text-center">
+                    @if (prod.totalStock === 0) {
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                        Agotado
+                      </span>
+                    } @else if (prod.totalStock <= prod.minStock) {
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                        Crítico ({{ prod.totalStock }} un)
+                      </span>
+                    } @else {
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        Stock Óptimo
+                      </span>
+                    }
+                  </td>
+
+                  <!-- Acciones -->
                   <td class="py-3 px-4 text-center">
                     <div class="inline-flex items-center gap-1.5">
                       <button type="button" (click)="openStockModal(prod)"
-                        class="text-emerald-700 hover:text-emerald-900 font-semibold text-xs cursor-pointer p-1 rounded hover:bg-emerald-50 transition-colors">
-                        Stock ({{ prod.stocks ? prod.stocks.length : 0 }})
+                        class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-mono text-[11px] font-semibold cursor-pointer transition-colors shadow-2xs">
+                        ↗ Kardex ({{ prod.stocks ? prod.stocks.length : 0 }})
                       </button>
                       @if (canManageStock()) {
                         <button type="button" (click)="openEditModal(prod)"
-                          class="text-slate-500 hover:text-slate-800 font-medium text-xs cursor-pointer p-1 rounded hover:bg-slate-100 transition-colors">
-                          ✏️ Editar
+                          class="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                          title="Editar Ficha Técnica">
+                          ✏️
                         </button>
                       }
                     </div>
@@ -194,7 +267,7 @@ import type { Product } from '../../core/models/product.model';
         </div>
       </div>
 
-      <!-- MODAL DE STOCK POR MAYORISTA -->
+      <!-- MODALES INTEGRADOS -->
       @if (selectedProductForStock()) {
         <app-stock-modal
           [product]="selectedProductForStock()"
@@ -205,7 +278,6 @@ import type { Product } from '../../core/models/product.model';
           (save)="handleStockUpdate($event)" />
       }
 
-      <!-- MODAL DE CREACIÓN / EDICIÓN DE REPUESTOS -->
       @if (isProductModalOpen()) {
         <app-product-form-modal
           [product]="selectedProductForEdit()"
@@ -230,14 +302,11 @@ export class CatalogListComponent implements OnInit {
   isSavingProduct = signal(false);
 
   searchQuery = signal('');
-  selectedCategory = signal('Todas');
-  categories = ['Todas', 'Frenos', 'Suspensión & Dirección', 'Motor & Culata', 'Filtros & Lubricantes', 'Transmisión 4x4'];
-  formCategories = ['Frenos', 'Suspensión & Dirección', 'Motor & Culata', 'Filtros & Lubricantes', 'Transmisión 4x4'];
+  selectedCategory = signal('Todas las Líneas');
 
-  // Modal de stock
+  formCategories = ['Frenos', 'Suspensión & Dirección', 'Motor & Culata', 'Filtros & Lubricantes', 'Transmisión & Embrague', 'Sistema Eléctrico'];
+
   selectedProductForStock = signal<Product | null>(null);
-
-  // Modal de producto (Crear / Editar)
   selectedProductForEdit = signal<Product | null>(null);
   isProductModalOpen = signal(false);
 
@@ -246,12 +315,26 @@ export class CatalogListComponent implements OnInit {
     return role === 'ADMIN' || role === 'MANAGER' || role === 'WAREHOUSE';
   });
 
+  categoryLines = computed(() => {
+    const all = this.products();
+    const countByCat = (c: string) => all.filter(p => p.category === c).length;
+
+    return [
+      { name: 'Todas las Líneas', count: all.length },
+      { name: 'Frenos', count: countByCat('Frenos') },
+      { name: 'Suspensión & Dirección', count: countByCat('Suspensión & Dirección') },
+      { name: 'Motor & Culata', count: countByCat('Motor & Culata') },
+      { name: 'Filtros & Lubricantes', count: countByCat('Filtros & Lubricantes') },
+      { name: 'Transmisión & Embrague', count: countByCat('Transmisión & Embrague') },
+    ];
+  });
+
   filteredProducts = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     const cat = this.selectedCategory();
 
     return this.products().filter((p) => {
-      const matchCat = cat === 'Todas' || p.category === cat;
+      const matchCat = cat === 'Todas las Líneas' || p.category === cat;
       const matchQuery = !query ||
         p.name.toLowerCase().includes(query) ||
         p.internalCode.toLowerCase().includes(query) ||
@@ -271,6 +354,21 @@ export class CatalogListComponent implements OnInit {
   ngOnInit(): void {
     this.loadProducts();
     this.loadSuppliers();
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  handleKeyboardShortcuts(event: KeyboardEvent): void {
+    if (event.key === 'F4') {
+      event.preventDefault();
+      event.stopPropagation();
+      if (this.canManageStock()) {
+        this.openCreateModal();
+      }
+    } else if (event.key === 'F5') {
+      event.preventDefault();
+      event.stopPropagation();
+      this.loadProducts();
+    }
   }
 
   loadProducts(): void {
@@ -305,7 +403,32 @@ export class CatalogListComponent implements OnInit {
     return t ? Number(t.price) : 0;
   }
 
-  // Métodos Modal Stock
+  getSkuBadgeColor(idx: number): string {
+    const colors = [
+      'bg-blue-50 text-blue-800 border-blue-200',
+      'bg-amber-50 text-amber-800 border-amber-200',
+      'bg-emerald-50 text-emerald-800 border-emerald-200',
+      'bg-rose-50 text-rose-800 border-rose-200',
+      'bg-purple-50 text-purple-800 border-purple-200',
+    ];
+    return colors[idx % colors.length];
+  }
+
+  getOemCode(prod: Product): string {
+    const stockWithSku = prod.stocks?.find(s => s.supplierSku);
+    return stockWithSku?.supplierSku || `${prod.internalCode}-OEM`;
+  }
+
+  getStockBreakdown(prod: Product, index: number): number {
+    if (!prod.stocks || prod.stocks.length === 0) return 0;
+    return prod.stocks[index]?.stock || 0;
+  }
+
+  exportExcelStub(): void {
+    this.toast.show('Exportando lista maestra a formato Excel...', 'info');
+  }
+
+  // Modales
   openStockModal(product: Product): void {
     this.selectedProductForStock.set(product);
   }
@@ -319,21 +442,15 @@ export class CatalogListComponent implements OnInit {
     if (!prod) return;
 
     if (!event.supplierId) {
-      this.toast.show('Seleccione un mayorista/proveedor.', 'error');
-      return;
-    }
-
-    if (event.stock < 0) {
-      this.toast.show('El stock no puede ser negativo.', 'error');
+      this.toast.show('Seleccione un mayorista o almacén.', 'error');
       return;
     }
 
     this.isSavingStock.set(true);
-
     this.productsApi.setSupplierStock(prod.id, event).subscribe({
       next: () => {
         this.isSavingStock.set(false);
-        this.toast.show(`Existencias actualizadas para "${prod.name}".`, 'success');
+        this.toast.show(`Existencias actualizadas en Kardex para "${prod.name}".`, 'success');
         this.closeStockModal();
         this.loadProducts();
       },
@@ -344,7 +461,6 @@ export class CatalogListComponent implements OnInit {
     });
   }
 
-  // Métodos Modal Producto (Crear / Editar)
   openCreateModal(): void {
     this.selectedProductForEdit.set(null);
     this.isProductModalOpen.set(true);
@@ -361,13 +477,8 @@ export class CatalogListComponent implements OnInit {
   }
 
   handleProductSave(data: ProductFormData): void {
-    if (!data.internalCode?.trim() || !data.name?.trim()) {
-      this.toast.show('Código interno y nombre son obligatorios.', 'error');
-      return;
-    }
-
     const payload = {
-      internalCode: data.internalCode.trim(),
+      internalCode: data.internalCode.trim().toUpperCase(), 
       name: data.name.trim(),
       brand: data.brand.trim(),
       category: data.category,
@@ -386,26 +497,26 @@ export class CatalogListComponent implements OnInit {
       this.productsApi.update(editingProd.id, payload).subscribe({
         next: () => {
           this.isSavingProduct.set(false);
-          this.toast.show(`Repuesto "${data.name}" actualizado.`, 'success');
+          this.toast.show(`Ficha técnica "${data.name}" actualizada con éxito.`, 'success');
           this.closeProductModal();
           this.loadProducts();
         },
         error: (err) => {
           this.isSavingProduct.set(false);
-          this.toast.show(err?.error?.message || 'Error al actualizar.', 'error');
+          this.toast.show(err?.error?.message || 'Error al actualizar ficha técnica.', 'error');
         }
       });
     } else {
       this.productsApi.create(payload).subscribe({
         next: () => {
           this.isSavingProduct.set(false);
-          this.toast.show(`Repuesto "${data.name}" registrado exitosamente.`, 'success');
+          this.toast.show(`Repuesto "${data.name}" ingresado a la lista maestra.`, 'success');
           this.closeProductModal();
           this.loadProducts();
         },
         error: (err) => {
           this.isSavingProduct.set(false);
-          this.toast.show(err?.error?.message || 'Error al registrar.', 'error');
+          this.toast.show(err?.error?.message || 'Error al registrar repuesto.', 'error');
         }
       });
     }

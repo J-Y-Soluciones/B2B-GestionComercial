@@ -1,5 +1,5 @@
 // frontend/src/app/features/proformas/components/cotizador/cotizador.component.ts
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, HostListener, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -87,6 +87,16 @@ export class CotizadorComponent implements OnInit {
 
     ngOnInit(): void {
         this.searchProducts();
+    }
+
+    @HostListener('window:keydown', ['$event'])
+    handleProformaShortcuts(event: KeyboardEvent): void {
+        if (event.key === 'F2') {
+            event.preventDefault();
+            event.stopPropagation();
+            // Invoca el método que ya tienes para enviar/guardar la proforma
+            this.submitProforma();
+        }
     }
 
     // Búsqueda Clientes
