@@ -7,6 +7,7 @@ import { CustomersApiService } from '../../../../core/services/customers-api.ser
 import { ProductsApiService } from '../../../../core/services/products-api.service';
 import { ProformasApiService } from '../../../../core/services/proformas-api.service';
 import { ProformasService } from '../../../../core/services/proformas.service';
+import { ToastService } from '../../../../core/services/toast.service';
 import type { Customer } from '../../../../core/models/customer.model';
 import type { Product, SupplierStock } from '../../../../core/models/product.model';
 import type { CreateProformaPayload } from '../../../../core/models/proforma.model';
@@ -34,6 +35,7 @@ export class CotizadorComponent implements OnInit {
     private readonly productsApi = inject(ProductsApiService);
     private readonly proformasApi = inject(ProformasApiService);
     private readonly proformasService = inject(ProformasService);
+    private readonly toastService = inject(ToastService);
     private readonly router = inject(Router);
 
     // Cliente
@@ -159,29 +161,83 @@ export class CotizadorComponent implements OnInit {
     }
 
     getActiveStock(prod: Product): SupplierStock | undefined {
+        if (!prod || !prod.stocks || prod.stocks.length === 0) return undefined;
         const selectedId = this.selectedSupplierByProduct()[prod.id];
         if (selectedId) {
-            const found = prod.stocks.find((s) => s.id === selectedId);
+            const found = prod.stocks.find((s: any) => s.id === selectedId || s.supplierId === selectedId);
             if (found) return found;
         }
         return prod.stocks[0];
     }
 
-    // Manejo del Carrito
+    getItemStockLimit(item: CotizadorCartItem): number {
+        if (!item || !item.product || !item.product.stocks || item.product.stocks.length === 0) {
+            return 0;
+        }
+
+        const stocks = item.product.stocks as any[];
+
+        // 1. Coincidencia directa por IDs (stockId, supplierId, o supplier.id)
+        if (item.selectedSupplierId) {
+            const match = stocks.find((s) =>
+                s.id === item.selectedSupplierId ||
+                s.supplierId === item.selectedSupplierId ||
+                s.supplier?.id === item.selectedSupplierId
+            );
+            if (match && match.stock !== undefined && match.stock !== null) {
+                return Number(match.stock);
+            }
+        }
+
+        // 2. Coincidencia por nombre del proveedor
+        if (item.selectedSupplierName) {
+            const targetName = item.selectedSupplierName.trim().toLowerCase();
+            const matchByName = stocks.find((s) => {
+                const sName = (s.supplierName || s.supplier?.name || '').trim().toLowerCase();
+                return sName === targetName;
+            });
+            if (matchByName && matchByName.stock !== undefined && matchByName.stock !== null) {
+                return Number(matchByName.stock);
+            }
+        }
+
+        // 3. Fallback al primer stock numérico válido
+        return Number(stocks[0]?.stock) || 0;
+    }
+
     addToCart(product: Product, stockItem?: SupplierStock): void {
         this.formErrorMessage.set(null);
 
-        // Toma el proveedor pasado explícitamente o el que esté marcado en la tarjeta
-        const chosenStock = stockItem ?? this.getActiveStock(product);
-        const supplierId = chosenStock?.supplierId ?? product.stocks[0]?.supplierId;
-        const supplierName = chosenStock?.supplierName ?? product.stocks[0]?.supplierName;
+        const chosenStock = (stockItem ?? this.getActiveStock(product)) as any;
+        if (!chosenStock) {
+            this.toastService.show('No se pudo identificar el inventario del repuesto.', 'error');
+            return;
+        }
 
-        const existingIndex = this.cart().findIndex(
-            (i) => i.product.id === product.id && i.selectedSupplierId === supplierId
+        const supplierId = chosenStock.supplierId || chosenStock.supplier?.id || chosenStock.id;
+        const supplierName = chosenStock.supplierName || chosenStock.supplier?.name || 'Proveedor Seleccionado';
+        const availableStock = Number(chosenStock.stock) || 0;
+
+        if (availableStock <= 0) {
+            this.toastService.show(`Sin existencias con ${supplierName}.`, 'error');
+            return;
+        }
+
+        const existingIndex = this.cart().findIndex((i) =>
+            i.product.id === product.id &&
+            (i.selectedSupplierId === supplierId || i.selectedSupplierName === supplierName)
         );
 
         if (existingIndex > -1) {
-            this.updateQuantity(existingIndex, this.cart()[existingIndex].quantity + 1);
+            const currentQty = this.cart()[existingIndex].quantity;
+            if (currentQty + 1 > availableStock) {
+                this.toastService.show(
+                    `Tope alcanzado: solo hay ${availableStock} unidades en ${supplierName}.`,
+                    'error'
+                );
+                return;
+            }
+            this.updateQuantity(existingIndex, currentQty + 1);
             return;
         }
 
@@ -200,22 +256,55 @@ export class CotizadorComponent implements OnInit {
         };
 
         this.cart.update((prev) => [...prev, newItem]);
-    }
-
-    removeFromCart(index: number): void {
-        this.cart.update((prev) => prev.filter((_, i) => i !== index));
+        this.toastService.show(`"${product.name}" agregado.`, 'info', 1500);
     }
 
     updateQuantity(index: number, newQty: number): void {
         if (newQty < 1) return;
+
+        const item = this.cart()[index];
+        const maxStock = this.getItemStockLimit(item);
+
+        if (newQty > maxStock) {
+            this.toastService.show(
+                `Stock insuficiente: solo dispones de ${maxStock} unidades en ${item.selectedSupplierName || 'este proveedor'}.`,
+                'error'
+            );
+            return;
+        }
+
         this.cart.update((prev) => {
             const updated = [...prev];
-            const item = { ...updated[index] };
-            item.quantity = newQty;
-            item.subtotal = Number((item.quantity * item.unitPrice).toFixed(2));
-            updated[index] = item;
+            const currentItem = { ...updated[index] };
+            currentItem.quantity = newQty;
+            currentItem.subtotal = Number((currentItem.quantity * currentItem.unitPrice).toFixed(2));
+            updated[index] = currentItem;
             return updated;
         });
+    }
+
+    onQuantityInput(index: number, event: Event): void {
+        const input = event.target as HTMLInputElement;
+        let val = parseInt(input.value, 10);
+        const item = this.cart()[index];
+        const maxStock = this.getItemStockLimit(item);
+
+        if (isNaN(val) || val < 1) {
+            val = 1;
+        } else if (val > maxStock) {
+            this.toastService.show(
+                `Stock máximo disponible: ${maxStock} unidades.`,
+                'error'
+            );
+            val = maxStock;
+        }
+
+        input.value = val.toString();
+        this.updateQuantity(index, val);
+    }
+
+    removeFromCart(index: number): void {
+        this.cart.update((prev) => prev.filter((_, i) => i !== index));
     }
 
     setPriceTier(itemIndex: number, tierNumber: number): void {
@@ -252,6 +341,18 @@ export class CotizadorComponent implements OnInit {
             return;
         }
 
+        // Validación estricta final de stock antes de enviar al backend
+        for (const item of this.cart()) {
+            const maxStock = this.getItemStockLimit(item);
+            if (item.quantity > maxStock) {
+                this.toastService.show(
+                    `El repuesto "${item.product.name}" supera el stock disponible (${item.quantity} de ${maxStock}). Ajuste la cantidad.`,
+                    'error'
+                );
+                return;
+            }
+        }
+
         this.formErrorMessage.set(null);
 
         const payload: CreateProformaPayload = {
@@ -280,6 +381,9 @@ export class CotizadorComponent implements OnInit {
 
                 if (created.status === 'PENDING_APPROVAL') {
                     this.proformasService.refreshPendingCount();
+                    this.toastService.show(`Proforma ${created.code} enviada a revisión gerencial.`, 'info');
+                } else {
+                    this.toastService.show(`Proforma ${created.code} generada exitosamente.`, 'success');
                 }
             },
             error: (err) => {

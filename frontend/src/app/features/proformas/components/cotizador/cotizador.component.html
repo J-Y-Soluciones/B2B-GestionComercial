@@ -166,8 +166,8 @@
                                 }
 
                                 <span [class]="prod.totalStock > prod.minStock 
-        ? 'bg-emerald-100 text-emerald-900 border-emerald-300' 
-        : 'bg-rose-100 text-rose-900 border-rose-300'"
+                                    ? 'bg-emerald-100 text-emerald-900 border-emerald-300' 
+                                    : 'bg-rose-100 text-rose-900 border-rose-300'"
                                     class="px-2 py-0.5 rounded-md font-mono font-bold text-[11px] border ml-auto">
                                     Stock Global: {{ prod.totalStock }}
                                 </span>
@@ -183,7 +183,7 @@
                                     S/ {{ getTierPrice(prod, 1) | number:'1.2-2' }}
                                 </span>
                             </div>
-                            <button type="button" (click)="addToCart(prod)"
+                            <button type="button" (click)="addToCart(prod, getActiveStock(prod))"
                                 class="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs">
                                 <span>+ Agregar</span>
                             </button>
@@ -234,13 +234,17 @@
                                     </div>
                                     <div class="font-semibold text-slate-800">{{ item.product.name }}</div>
 
-                                    <!-- Badge del Proveedor Escogido -->
+                                    <!-- Badge del Proveedor Escogido con Stock Máximo -->
                                     @if (item.selectedSupplierName) {
-                                    <div class="mt-1">
+                                    <div class="mt-1 flex items-center gap-1.5 flex-wrap">
                                         <span
                                             class="inline-flex items-center gap-1 text-[10px] font-medium text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
                                             📦 Proveedor: <strong class="text-slate-800">{{ item.selectedSupplierName
                                                 }}</strong>
+                                        </span>
+                                        <span
+                                            class="text-[10px] font-mono font-semibold text-slate-500 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded">
+                                            Stock: {{ getItemStockLimit(item) }} u.
                                         </span>
                                     </div>
                                     }
@@ -252,16 +256,34 @@
                                     </span>
                                     }
                                 </td>
+
+                                <!-- Celda de Cantidad con Control de Tope de Existencias -->
                                 <td class="py-3 px-2 text-center">
-                                    <div class="inline-flex items-center border border-slate-300 rounded-md bg-white">
-                                        <button (click)="updateQuantity(idx, item.quantity - 1)"
-                                            class="px-2 py-1 text-slate-600 hover:bg-slate-100 cursor-pointer font-bold">-</button>
-                                        <span class="px-2 py-1 font-mono font-bold text-slate-800">{{ item.quantity
-                                            }}</span>
-                                        <button (click)="updateQuantity(idx, item.quantity + 1)"
-                                            class="px-2 py-1 text-slate-600 hover:bg-slate-100 cursor-pointer font-bold">+</button>
+                                    <div
+                                        class="inline-flex items-center border border-slate-300 rounded-md bg-white shadow-xs overflow-hidden">
+                                        <!-- Botón Disminuir (-) -->
+                                        <button type="button" (click)="updateQuantity(idx, item.quantity - 1)"
+                                            [disabled]="item.quantity <= 1"
+                                            class="px-2.5 py-1 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-white cursor-pointer font-bold text-xs transition-colors">
+                                            -
+                                        </button>
+
+                                        <!-- Input numérico editable protegido contra desbordes -->
+                                        <input type="number" [value]="item.quantity" min="1"
+                                            [max]="getItemStockLimit(item)" (change)="onQuantityInput(idx, $event)"
+                                            class="w-10 text-center font-mono font-bold text-slate-800 border-x border-slate-200 py-1 text-xs focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+
+                                        <!-- Botón Aumentar (+) con bloqueo al alcanzar el stock del mayorista -->
+                                        <button type="button" (click)="updateQuantity(idx, item.quantity + 1)"
+                                            [disabled]="item.quantity >= getItemStockLimit(item)"
+                                            [title]="item.quantity >= getItemStockLimit(item) ? 'Stock máximo alcanzado' : 'Aumentar'"
+                                            class="px-2.5 py-1 text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-white disabled:cursor-not-allowed cursor-pointer font-bold text-xs transition-colors">
+                                            +
+                                        </button>
                                     </div>
                                 </td>
+
+                                <!-- Niveles de Precio -->
                                 <td class="py-3 px-2">
                                     <div class="inline-flex rounded-lg p-0.5 bg-slate-100 border border-slate-200">
                                         <button type="button" (click)="setPriceTier(idx, 1)"
@@ -281,12 +303,14 @@
                                         </button>
                                     </div>
                                 </td>
+
                                 <td class="py-3 pl-2 text-right font-mono font-bold text-slate-900 text-sm">
                                     S/ {{ item.subtotal | number:'1.2-2' }}
                                 </td>
+
                                 <td class="py-3 text-center">
                                     <button (click)="removeFromCart(idx)"
-                                        class="text-slate-400 hover:text-rose-600 cursor-pointer p-1">
+                                        class="text-slate-400 hover:text-rose-600 cursor-pointer p-1 transition-colors text-base font-bold">
                                         &times;
                                     </button>
                                 </td>

@@ -32,10 +32,8 @@ export class CustomerService {
   }
 
   async search(query: string, limit = 10): Promise<CustomerEntity[]> {
-    if (!query || query.trim().length === 0) {
-      return [];
-    }
-    return this.customerRepository.search(query.trim(), limit);
+    const cleanedQuery = (query || '').trim();
+    return this.customerRepository.search(cleanedQuery, limit);
   }
 
   async create(dto: CreateCustomerDto): Promise<CustomerEntity> {
@@ -52,6 +50,22 @@ export class CustomerService {
       phone: dto.phone ?? null,
       address: dto.address ?? null,
     });
+  }
+
+  async delete(id: string): Promise<void> {
+    // 1. Verificar existencia
+    await this.findById(id);
+
+    // 2. Verificar historial comercial
+    const proformasCount = await this.customerRepository.countProformas(id);
+    if (proformasCount > 0) {
+      throw new ConflictException(
+        `No se puede eliminar el cliente porque cuenta con ${proformasCount} proforma(s) asociada(s).`,
+      );
+    }
+
+    // 3. Borrado físico limpio
+    await this.customerRepository.delete(id);
   }
 
   async update(id: string, dto: UpdateCustomerDto): Promise<CustomerEntity> {

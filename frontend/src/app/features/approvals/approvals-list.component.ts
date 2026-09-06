@@ -1,9 +1,10 @@
 // frontend/src/app/features/approvals/approvals-list.component.ts
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ProformasService } from '../../core/services/proformas.service';
+import { ToastService } from '../../core/services/toast.service';
 
 export interface ProformaDetailDto {
   id: string;
@@ -355,6 +356,7 @@ export interface ProformaApiDto {
 export class ApprovalsListComponent implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly proformasService = inject(ProformasService);
+  private readonly toast = inject(ToastService);
   private readonly API_URL = 'http://localhost:3000/proformas';
 
   proformas = signal<ProformaApiDto[]>([]);
@@ -371,6 +373,19 @@ export class ApprovalsListComponent implements OnInit {
     this.proformas().reduce((acc, p) => acc + this.toNumber(p.totalAmount), 0)
   );
 
+  @HostListener('window:keydown', ['$event'])
+  handleKeyboardShortcuts(event: KeyboardEvent): void {
+    if (this.showRejectModal()) return;
+
+    if (event.key === 'F8') {
+      event.preventDefault();
+      this.approveCurrent();
+    } else if (event.key === 'F9') {
+      event.preventDefault();
+      this.openRejectModal();
+    }
+  }
+
   ngOnInit(): void {
     this.loadData();
   }
@@ -386,8 +401,8 @@ export class ApprovalsListComponent implements OnInit {
         this.loading.set(false);
       },
       error: (err) => {
-        console.error('Error al cargar proformas:', err);
         this.loading.set(false);
+        this.toast.show(err.error?.message || 'Error al cargar proformas pendientes', 'error');
       }
     });
   }
@@ -411,22 +426,24 @@ export class ApprovalsListComponent implements OnInit {
 
   approveCurrent(): void {
     const current = this.selected();
-    if (!current) return;
+    if (!current || this.actionLoading()) return;
 
     this.actionLoading.set(true);
     this.http.patch(`${this.API_URL}/${current.id}/approve`, {}).subscribe({
       next: () => {
         this.actionLoading.set(false);
         this.removeProformaFromView(current.id);
+        this.toast.show(`Proforma ${current.code} aprobada con éxito`, 'success');
       },
       error: (err) => {
         this.actionLoading.set(false);
-        alert(err.error?.message || 'Error al aprobar la proforma.');
+        this.toast.show(err.error?.message || 'Error al aprobar la proforma', 'error');
       }
     });
   }
 
   openRejectModal(): void {
+    if (!this.selected()) return;
     this.customNote = '';
     this.showRejectModal.set(true);
   }
@@ -437,7 +454,7 @@ export class ApprovalsListComponent implements OnInit {
 
   confirmReject(): void {
     const current = this.selected();
-    if (!current) return;
+    if (!current || this.actionLoading()) return;
 
     const fullReason = this.customNote.trim()
       ? `${this.selectedReason}: ${this.customNote.trim()}`
@@ -449,10 +466,11 @@ export class ApprovalsListComponent implements OnInit {
         this.actionLoading.set(false);
         this.closeRejectModal();
         this.removeProformaFromView(current.id);
+        this.toast.show(`Proforma ${current.code} rechazada`, 'info');
       },
       error: (err) => {
         this.actionLoading.set(false);
-        alert(err.error?.message || 'Error al rechazar la proforma.');
+        this.toast.show(err.error?.message || 'Error al rechazar la proforma', 'error');
       }
     });
   }

@@ -1,4 +1,3 @@
-// frontend/src/app/core/services/customers-api.service.ts
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
@@ -37,6 +36,20 @@ export class CustomersApiService {
             tap((customer) => this.selectedCustomer.set(customer)),
         );
     }
+
+    update(id: string, payload: Partial<CreateCustomerPayload>): Observable<Customer> {
+        return this.http.patch<Customer>(`${this.baseUrl}/${id}`, payload).pipe(
+            tap((customer) => {
+                if (this.selectedCustomer()?.id === id) {
+                    this.selectedCustomer.set(customer);
+                }
+            }),
+        );
+    }
+
+    delete(id: string): Observable<void> {
+        return this.http.delete<void>(`${this.baseUrl}/${id}`);
+    } 
 
     selectCustomer(customer: Customer | null): void {
         this.selectedCustomer.set(customer);

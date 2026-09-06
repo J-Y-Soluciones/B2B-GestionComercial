@@ -5,6 +5,7 @@ import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../core/services/auth.service';
 import { ProformasService } from '../../core/services/proformas.service';
+import { ToastService } from '../../core/services/toast.service'; 
 
 @Component({
   selector: 'app-admin-layout',
@@ -221,6 +222,29 @@ import { ProformasService } from '../../core/services/proformas.service';
           <router-outlet />
         </main>
       </div>
+
+      <!-- Añadir justo antes del cierre del último </div> en el template de admin-layout.component.ts -->
+      <div class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none">
+        @for (toast of toastService.toasts(); track toast.id) {
+          <div 
+            class="pointer-events-auto flex items-center gap-2.5 px-4 py-2.5 rounded-lg shadow-lg border text-xs font-medium transition-all duration-300 transform translate-y-0"
+            [ngClass]="{
+              'bg-slate-900 text-white border-slate-800': toast.type === 'info',
+              'bg-emerald-900 text-emerald-100 border-emerald-700': toast.type === 'success',
+              'bg-rose-900 text-rose-100 border-rose-700': toast.type === 'error'
+            }">
+            @if (toast.type === 'success') {
+              <span class="text-emerald-400 font-bold">✓</span>
+            } @else if (toast.type === 'error') {
+              <span class="text-rose-400 font-bold">✕</span>
+            } @else {
+              <span class="text-blue-400 font-bold">ℹ</span>
+            }
+            <span>{{ toast.text }}</span>
+            <button (click)="toastService.remove(toast.id)" class="ml-2 text-slate-400 hover:text-white cursor-pointer">&times;</button>
+          </div>
+        }
+      </div>
     </div>
   `
 })
@@ -229,6 +253,7 @@ export class AdminLayoutComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly proformasService = inject(ProformasService);
   private readonly destroyRef = inject(DestroyRef);
+  public readonly toastService = inject(ToastService);  
 
   public sidebarExpanded = signal(true);
   public pendingApprovalsCount = this.proformasService.pendingApprovalsCount;

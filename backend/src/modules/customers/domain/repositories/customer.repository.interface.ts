@@ -26,6 +26,8 @@ export interface ICustomerRepository {
   search(query: string, limit?: number): Promise<CustomerEntity[]>;
   create(data: CreateCustomerData): Promise<CustomerEntity>;
   update(id: string, data: UpdateCustomerData): Promise<CustomerEntity>;
+  delete(id: string): Promise<void>;
+  countProformas(customerId: string): Promise<number>;
 }
 
 export const CUSTOMER_REPOSITORY_TOKEN = Symbol('ICustomerRepository');

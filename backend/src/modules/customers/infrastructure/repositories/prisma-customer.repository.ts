@@ -1,5 +1,6 @@
 // backend/src/modules/customers/infrastructure/repositories/prisma-customer.repository.ts
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../core/prisma/prisma.service.js';
 import type {
   ICustomerRepository,
@@ -10,7 +11,7 @@ import { CustomerEntity } from '../../domain/entities/customer.entity.js';
 
 @Injectable()
 export class PrismaCustomerRepository implements ICustomerRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async findById(id: string): Promise<CustomerEntity | null> {
     const record = await this.prisma.customer.findUnique({
@@ -27,16 +28,23 @@ export class PrismaCustomerRepository implements ICustomerRepository {
   }
 
   async search(query: string, limit = 10): Promise<CustomerEntity[]> {
-    const records = await this.prisma.customer.findMany({
-      where: {
+    const trimmed = (query || '').trim();
+
+    const where: Prisma.CustomerWhereInput = trimmed
+      ? {
         OR: [
-          { documentNumber: { contains: query, mode: 'insensitive' } },
-          { name: { contains: query, mode: 'insensitive' } },
+          { documentNumber: { contains: trimmed, mode: 'insensitive' } },
+          { name: { contains: trimmed, mode: 'insensitive' } },
         ],
-      },
+      }
+      : {};
+
+    const records = await this.prisma.customer.findMany({
+      where,
       take: limit,
-      orderBy: { name: 'asc' },
+      orderBy: trimmed ? { name: 'asc' } : { createdAt: 'desc' },
     });
+
     return records.map((record) => new CustomerEntity(record));
   }
 
@@ -60,5 +68,17 @@ export class PrismaCustomerRepository implements ICustomerRepository {
       data,
     });
     return new CustomerEntity(updated);
+  }
+
+  async countProformas(customerId: string): Promise<number> {
+    return this.prisma.proforma.count({
+      where: { customerId },
+    });
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.prisma.customer.delete({
+      where: { id },
+    });
   }
 }
