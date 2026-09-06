@@ -1,3 +1,4 @@
+//src/app/features/catalog/components/product-form-modal.component.ts
 import { Component, HostListener, input, output, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';

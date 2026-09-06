@@ -1,6 +1,5 @@
-// frontend/src/app/core/services/proformas-api.service.ts
 import { Injectable, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import type {
     Proforma,
@@ -16,6 +15,15 @@ export class ProformasApiService {
 
     readonly isSubmitting = signal<boolean>(false);
     readonly lastCreatedProforma = signal<Proforma | null>(null);
+
+    getAll(filters?: { customerId?: string; sellerId?: string; status?: string }): Observable<Proforma[]> {
+        let params = new HttpParams();
+        if (filters?.customerId) params = params.set('customerId', filters.customerId);
+        if (filters?.sellerId) params = params.set('sellerId', filters.sellerId);
+        if (filters?.status && filters.status !== 'ALL') params = params.set('status', filters.status);
+
+        return this.http.get<Proforma[]>(this.baseUrl, { params });
+    }
 
     create(payload: CreateProformaPayload): Observable<Proforma> {
         this.isSubmitting.set(true);

@@ -5,7 +5,7 @@ import { filter } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../core/services/auth.service';
 import { ProformasService } from '../../core/services/proformas.service';
-import { ToastService } from '../../core/services/toast.service'; 
+import { ToastService } from '../../core/services/toast.service';
 
 @Component({
   selector: 'app-admin-layout',
@@ -86,41 +86,70 @@ import { ToastService } from '../../core/services/toast.service';
               </a>
             }
 
-            <!-- Módulos autorizados de la sesión -->
-            @for (mod of modules(); track mod.moduleCode) {
-              @if (mod.path !== '/approvals') {
-                <a 
-                  [routerLink]="mod.moduleCode === 'PROFORMAS' ? '/proformas/create' : mod.path" 
-                  routerLinkActive="!bg-[#064e3b] !text-white shadow-sm active-item"
-                  class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 transition-all text-xs font-medium group">
-                  <div class="flex items-center gap-3 min-w-0">
-                    <ng-container [ngSwitch]="mod.moduleCode">
-                      <svg *ngSwitchCase="'PROFORMAS'" class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                      </svg>
-                      <svg *ngSwitchCase="'CATALOG'" class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                      </svg>
-                      <svg *ngSwitchCase="'CUSTOMERS'" class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                      </svg>
-                      <svg *ngSwitchCase="'USERS'" class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                      </svg>
-                      <svg *ngSwitchDefault class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
-                      </svg>
-                    </ng-container>
-
-                    @if (sidebarExpanded()) {
-                      <span class="truncate">{{ mod.name }}</span>
-                    }
-                  </div>
-                  @if (sidebarExpanded() && mod.moduleCode === 'PROFORMAS') {
-                    <span class="text-[9px] font-semibold text-slate-400 bg-slate-100 group-[.active-item]:bg-emerald-900 group-[.active-item]:text-emerald-200 px-1 py-0.5 rounded border border-slate-200 group-[.active-item]:border-emerald-800">F2</span>
+            <!-- Bloque Proformas (Cotizador F2 + Historial Central) -->
+            @if (hasProformasAccess()) {
+              <!-- 1. Cotizador Rápido F2 -->
+              <a 
+                routerLink="/proformas/create" 
+                routerLinkActive="!bg-[#064e3b] !text-white shadow-sm active-item"
+                class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 transition-all text-xs font-medium group">
+                <div class="flex items-center gap-3 min-w-0">
+                  <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                  </svg>
+                  @if (sidebarExpanded()) {
+                    <span class="truncate">Cotizador Rápido</span>
                   }
-                </a>
-              }
+                </div>
+                @if (sidebarExpanded()) {
+                  <span class="text-[9px] font-semibold text-slate-400 bg-slate-100 group-[.active-item]:bg-emerald-900 group-[.active-item]:text-emerald-200 px-1 py-0.5 rounded border border-slate-200 group-[.active-item]:border-emerald-800">F2</span>
+                }
+              </a>
+
+              <!-- 2. Historial de Proformas -->
+              <a 
+                routerLink="/proformas" 
+                [routerLinkActiveOptions]="{ exact: true }"
+                routerLinkActive="!bg-[#064e3b] !text-white shadow-sm active-item"
+                class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 transition-all text-xs font-medium group">
+                <div class="flex items-center gap-3 min-w-0">
+                  <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                  </svg>
+                  @if (sidebarExpanded()) {
+                    <span class="truncate">Historial Proformas</span>
+                  }
+                </div>
+              </a>
+            }
+
+            <!-- Resto de módulos autorizados de la sesión -->
+            @for (mod of otherModules(); track mod.moduleCode) {
+              <a 
+                [routerLink]="mod.path" 
+                routerLinkActive="!bg-[#064e3b] !text-white shadow-sm active-item"
+                class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 transition-all text-xs font-medium group">
+                <div class="flex items-center gap-3 min-w-0">
+                  <ng-container [ngSwitch]="mod.moduleCode">
+                    <svg *ngSwitchCase="'CATALOG'" class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                    </svg>
+                    <svg *ngSwitchCase="'CUSTOMERS'" class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    <svg *ngSwitchCase="'USERS'" class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
+                    <svg *ngSwitchDefault class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                    </svg>
+                  </ng-container>
+
+                  @if (sidebarExpanded()) {
+                    <span class="truncate">{{ mod.name }}</span>
+                  }
+                </div>
+              </a>
             }
 
             <div class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 text-xs cursor-default">
@@ -223,7 +252,7 @@ import { ToastService } from '../../core/services/toast.service';
         </main>
       </div>
 
-      <!-- Añadir justo antes del cierre del último </div> en el template de admin-layout.component.ts -->
+      <!-- TOAST CONTAINER -->
       <div class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none">
         @for (toast of toastService.toasts(); track toast.id) {
           <div 
@@ -253,7 +282,7 @@ export class AdminLayoutComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly proformasService = inject(ProformasService);
   private readonly destroyRef = inject(DestroyRef);
-  public readonly toastService = inject(ToastService);  
+  public readonly toastService = inject(ToastService);
 
   public sidebarExpanded = signal(true);
   public pendingApprovalsCount = this.proformasService.pendingApprovalsCount;
@@ -264,6 +293,16 @@ export class AdminLayoutComponent implements OnInit {
   public canViewApprovals = computed(() => {
     const role = this.currentUser()?.role;
     return role === 'ADMIN' || role === 'MANAGER';
+  });
+
+  // Comprueba si el usuario tiene asignado el módulo de proformas
+  public hasProformasAccess = computed(() => {
+    return this.modules().some((m) => m.moduleCode === 'PROFORMAS');
+  });
+
+  // Módulos restantes (excluye proformas y aprobaciones para no duplicarlos en la lista)
+  public otherModules = computed(() => {
+    return this.modules().filter((m) => m.moduleCode !== 'PROFORMAS' && m.path !== '/approvals');
   });
 
   @HostListener('window:keydown', ['$event'])
@@ -277,7 +316,7 @@ export class AdminLayoutComponent implements OnInit {
   currentRouteTitle(): string {
     const url = this.router.url;
     if (url.includes('/proformas/create')) return 'Cotizador & Emisión de Proformas (F2)';
-    if (url.includes('/proformas')) return 'Listado de Proformas';
+    if (url.includes('/proformas')) return 'Listado Histórico de Proformas';
     if (url.includes('/catalog')) return 'Catálogo e Inventario';
     if (url.includes('/customers')) return 'Clientes & Cuentas RUC';
     if (url.includes('/approvals')) return 'Bandeja de Aprobaciones (Tier 3)';
@@ -286,7 +325,6 @@ export class AdminLayoutComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Solo carga el contador si el usuario tiene rol habilitado para aprobar
     if (this.canViewApprovals()) {
       this.proformasService.refreshPendingCount();
 

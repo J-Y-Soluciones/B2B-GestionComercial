@@ -1,3 +1,4 @@
+//src/app/features/catalog/components/stock-modal.component.ts
 import { Component, HostListener, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
