@@ -8,6 +8,7 @@ import { ProformasModule } from './modules/proformas/proformas.module.js';
 import { CustomerModule } from './modules/customers/customers.module.js';
 import { ProductsModule } from './modules/products/products.module.js';
 import { SuppliersModule } from './modules/suppliers/suppliers.module.js';
+import { UsersModule } from './modules/users/users.module.js'; 
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { SuppliersModule } from './modules/suppliers/suppliers.module.js';
     CustomerModule,
     ProductsModule,
     SuppliersModule,
+    UsersModule,
   ],
 })
 export class AppModule { }
