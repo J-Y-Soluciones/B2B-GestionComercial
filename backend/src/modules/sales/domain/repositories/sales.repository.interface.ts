@@ -28,6 +28,8 @@ export interface CreateSaleData {
         series: string;
         correlative: number;
         fullCode: string;
+        status?: string;
+        hashCpe?: string | null;
     };
 }
 

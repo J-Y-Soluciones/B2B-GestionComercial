@@ -62,11 +62,11 @@ import type { Product } from '../../core/models/product.model';
           (close)="selectedProductForStock.set(null)"
           (save)="handleStockUpdate($event)" />
       }
-
       @if (isProductModalOpen()) {
         <app-product-form-modal
           [product]="selectedProductForEdit()"
           [categories]="formCategories"
+          [suppliers]="suppliers()"
           [isSaving]="isSavingProduct()"
           (close)="closeProductModal()"
           (save)="handleProductSave($event)" />
@@ -213,11 +213,34 @@ export class CatalogListComponent implements OnInit {
     const request$ = editing ? this.productsApi.update(editing.id, payload) : this.productsApi.create(payload);
 
     request$.subscribe({
-      next: () => {
-        this.isSavingProduct.set(false);
-        this.toast.show(`Repuesto guardado con éxito.`, 'success');
-        this.closeProductModal();
-        this.loadProducts();
+      next: (createdOrUpdatedProduct: Product) => {
+        // Si es creación y el usuario configuró existencias iniciales en el mismo formulario
+        if (!editing && data.initialSupplierId && createdOrUpdatedProduct?.id) {
+          this.productsApi.setSupplierStock(createdOrUpdatedProduct.id, {
+            supplierId: data.initialSupplierId,
+            supplierSku: data.initialSku || null,
+            stock: data.initialStock || 0,
+            costPrice: data.initialCostPrice || 0
+          }).subscribe({
+            next: () => {
+              this.isSavingProduct.set(false);
+              this.toast.show(`Repuesto y stock inicial registrados con éxito.`, 'success');
+              this.closeProductModal();
+              this.loadProducts();
+            },
+            error: () => {
+              this.isSavingProduct.set(false);
+              this.toast.show(`Repuesto creado, pero falló el stock inicial. Edítalo en Lotes.`, 'info');
+              this.closeProductModal();
+              this.loadProducts();
+            }
+          });
+        } else {
+          this.isSavingProduct.set(false);
+          this.toast.show(`Repuesto guardado con éxito.`, 'success');
+          this.closeProductModal();
+          this.loadProducts();
+        }
       },
       error: (err) => {
         this.isSavingProduct.set(false);

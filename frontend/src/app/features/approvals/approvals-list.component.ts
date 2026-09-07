@@ -55,21 +55,31 @@ export interface ProformaApiDto {
   ],
   template: `
     <div class="space-y-4">
-      <!-- HEADER -->
-      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+      <!-- HEADER ESTANDARIZADO -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
         <div>
-          <div class="flex items-center gap-2">
-            <h1 class="text-xl font-bold text-slate-900 tracking-tight">Bandeja de Aprobaciones de Precio (Tier 3)</h1>
-            <span class="bg-amber-100 text-amber-800 text-xs font-semibold px-2 py-0.5 rounded-full border border-amber-200">
+          <div class="text-[10px] font-mono font-bold tracking-wider text-slate-400 uppercase">
+            SUPERVISIÓN &bull; MARGEN COMERCIAL B2B
+          </div>
+          <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+            <h1 class="text-base font-extrabold text-slate-900 tracking-tight">
+              Bandeja de Aprobaciones de Precio (Tier 3)
+            </h1>
+            <span class="bg-amber-100 text-amber-800 text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border border-amber-200">
               {{ pendingCount() }} Pendientes
             </span>
           </div>
-          <p class="text-xs text-slate-500 mt-0.5">Supervisión y control de cotizaciones excepcionales con precio mayorista Tier 3</p>
+          <p class="text-xs text-slate-500 mt-0.5">
+            Supervisión y control de cotizaciones excepcionales con precio mayorista Tier 3.
+          </p>
         </div>
 
-        <div class="flex items-center gap-2 text-xs">
-          <button (click)="loadData()" class="text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-xs hover:bg-slate-50 transition-colors flex items-center gap-1.5 cursor-pointer">
-            <span>🔄</span> Actualizar
+        <div class="flex items-center gap-2 self-end sm:self-auto">
+          <button (click)="loadData()" 
+            class="text-xs text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-xs hover:bg-slate-50 transition-colors flex items-center gap-1.5 cursor-pointer font-medium"
+            title="Recargar pendientes">
+            <span>🔄</span>
+            <span class="hidden sm:inline">Actualizar</span>
           </button>
         </div>
       </div>

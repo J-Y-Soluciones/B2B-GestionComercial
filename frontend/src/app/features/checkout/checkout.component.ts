@@ -85,24 +85,24 @@ import type { Customer } from '../../core/models/customer.model';
 
       <!-- Modal de Confirmación Estilizado -->
       @if (showDiscardModal()) {
-        <div class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-2xs flex items-center justify-center p-4">
-          <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 text-center space-y-4">
+        <div class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div class="bg-white rounded-2xl max-w-sm w-full p-5 sm:p-6 shadow-2xl border border-slate-100 text-center space-y-3.5 animate-in fade-in zoom-in-95 my-auto">
             <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto text-xl font-bold">
               ⚠
             </div>
             <div>
               <h3 class="text-sm font-bold text-slate-900">¿Descartar Operación?</h3>
               <p class="text-xs text-slate-500 mt-1">
-                El cliente no continuará con la compra. La cotización se marcará como cancelada y no afectará el inventario.
+                La cotización se marcará como cancelada y no afectará el inventario del almacén.
               </p>
             </div>
-            <div class="flex gap-2 pt-2">
+            <div class="flex gap-2 pt-1">
               <button type="button" (click)="showDiscardModal.set(false)"
                       class="flex-1 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer">
                 Continuar Venta
               </button>
               <button type="button" (click)="confirmDiscard()"
-                      class="flex-1 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-2xs transition-colors cursor-pointer">
+                      class="flex-1 py-2 text-xs font-bold text-white bg-rose-700 hover:bg-rose-800 rounded-lg shadow-2xs transition-colors cursor-pointer">
                 Sí, Descartar
               </button>
             </div>

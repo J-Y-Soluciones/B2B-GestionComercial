@@ -8,120 +8,206 @@ import type { Product } from '../../../core/models/product.model';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs border-collapse">
-          <thead>
-            <tr class="border-b border-slate-200 bg-slate-50/70 text-slate-500 uppercase text-[9px] font-mono font-bold tracking-wider">
-              <th class="py-3 px-3 text-center w-10">#</th>
-              <th class="py-3 px-4">SKU / Descripción & Marca</th>
-              <th class="py-3 px-4">Categoría / OEM</th>
-              <th class="py-3 px-4 text-center">Matriz de Precios B2B (Tiers)</th>
-              <th class="py-3 px-4 text-center">Existencias Consolidadas</th>
-              <th class="py-3 px-4 text-center">Estado Stock</th>
-              <th class="py-3 px-4 text-center">Acciones</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-100">
-            @if (products().length === 0 && !isLoading()) {
-              <tr>
-                <td colspan="7" class="py-12 text-center text-slate-400 text-xs">
-                  No se encontraron repuestos con los criterios ingresados.
-                </td>
+    <div class="space-y-3">
+      <!-- VISTA MÓVIL: Tarjetas compactas B2B (sin scroll horizontal) -->
+      <div class="block md:hidden space-y-3">
+        @if (products().length === 0 && !isLoading()) {
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 text-center text-slate-400 text-xs shadow-2xs">
+            No se encontraron repuestos con los criterios ingresados.
+          </div>
+        }
+
+        @for (prod of products(); track prod.id; let idx = $index) {
+          <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
+            <!-- Encabezado: SKU, Código OEM y Estado de Existencias -->
+            <div class="flex items-start justify-between gap-2">
+              <div class="space-y-1">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span [class]="getSkuBadgeColor(idx)" class="font-mono text-[10px] font-bold px-1.5 py-0.2 rounded border uppercase">
+                    {{ prod.internalCode }}
+                  </span>
+                  <span class="text-[10px] font-mono text-slate-400"># OEM: {{ getOemCode(prod) }}</span>
+                </div>
+                <h4 class="font-bold text-slate-900 text-xs leading-snug">{{ prod.name }}</h4>
+                <div class="text-[11px] text-slate-500">
+                  <strong class="text-slate-700 font-semibold">{{ prod.brand }}</strong> &bull; {{ prod.category }}
+                </div>
+              </div>
+
+              <!-- Badge Estado Stock -->
+              <div class="shrink-0">
+                @if (prod.totalStock === 0) {
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                    <span class="w-1 h-1 rounded-full bg-rose-500"></span> Agotado
+                  </span>
+                } @else if (prod.totalStock <= prod.minStock) {
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                    <span class="w-1 h-1 rounded-full bg-amber-500 animate-pulse"></span> Crítico ({{ prod.totalStock }})
+                  </span>
+                } @else {
+                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span class="w-1 h-1 rounded-full bg-emerald-500"></span> {{ prod.totalStock }} un
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Matriz de Tiers compacta -->
+            <div class="grid grid-cols-3 gap-1.5 bg-slate-50 p-2.5 rounded-xl border border-slate-100 font-mono text-[10px] text-center">
+              <div>
+                <span class="text-slate-400 block text-[9px]">T1 Mostrador</span>
+                <strong class="text-slate-900 font-bold">S/ {{ getTierPrice(prod, 1) | number:'1.2-2' }}</strong>
+              </div>
+              <div class="border-x border-slate-200 px-1">
+                <span class="text-slate-400 block text-[9px]">T2 Taller</span>
+                <strong class="text-slate-900 font-bold">S/ {{ getTierPrice(prod, 2) | number:'1.2-2' }}</strong>
+              </div>
+              <div>
+                <span class="text-emerald-700 block text-[9px]">T3 Mayor</span>
+                <strong class="text-emerald-950 font-black">S/ {{ getTierPrice(prod, 3) | number:'1.2-2' }}</strong>
+              </div>
+            </div>
+
+            <!-- Footer Tarjeta: Proveedores & Botones de Acción -->
+            <div class="flex items-center justify-between pt-1 border-t border-slate-100">
+              <span class="text-[10px] text-slate-400 font-mono">
+                {{ prod.stocks?.length || 0 }} lotes / proveedores
+              </span>
+
+              <div class="flex items-center gap-2">
+                <button type="button" (click)="openStock.emit(prod)"
+                  class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-mono text-[10px] font-semibold cursor-pointer shadow-2xs">
+                  📦 Lotes ({{ prod.stocks?.length || 0 }})
+                </button>
+                @if (canManage()) {
+                  <button type="button" (click)="openEdit.emit(prod)"
+                    class="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer"
+                    title="Editar Ficha Técnica">
+                    ✏️
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- VISTA ESCRITORIO / TABLET: Tabla Clásica Completa -->
+      <div class="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div class="overflow-x-auto w-full">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="border-b border-slate-200 bg-slate-50/70 text-slate-500 uppercase text-[9px] font-mono font-bold tracking-wider">
+                <th class="py-3 px-3 text-center w-10">#</th>
+                <th class="py-3 px-4">SKU / Descripción & Marca</th>
+                <th class="py-3 px-4">Categoría / OEM</th>
+                <th class="py-3 px-4 text-center">Matriz de Precios B2B (Tiers)</th>
+                <th class="py-3 px-4 text-center">Existencias Consolidadas</th>
+                <th class="py-3 px-4 text-center">Estado Stock</th>
+                <th class="py-3 px-4 text-center">Acciones</th>
               </tr>
-            }
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              @if (products().length === 0 && !isLoading()) {
+                <tr>
+                  <td colspan="7" class="py-12 text-center text-slate-400 text-xs">
+                    No se encontraron repuestos con los criterios ingresados.
+                  </td>
+                </tr>
+              }
 
-            @for (prod of products(); track prod.id; let idx = $index) {
-              <tr class="hover:bg-slate-50/60 transition-colors">
-                <!-- # Secuencial -->
-                <td class="py-3 px-3 text-center font-mono text-[11px] text-slate-400">
-                  {{ (idx + 1) < 10 ? '0' + (idx + 1) : (idx + 1) }}
-                </td>
+              @for (prod of products(); track prod.id; let idx = $index) {
+                <tr class="hover:bg-slate-50/60 transition-colors">
+                  <!-- # Secuencial -->
+                  <td class="py-3 px-3 text-center font-mono text-[11px] text-slate-400">
+                    {{ (idx + 1) < 10 ? '0' + (idx + 1) : (idx + 1) }}
+                  </td>
 
-                <!-- SKU y Descripción -->
-                <td class="py-3 px-4">
-                  <div class="flex items-center gap-2">
-                    <span [class]="getSkuBadgeColor(idx)" class="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase">
-                      {{ prod.internalCode }}
-                    </span>
-                    <span class="font-bold text-slate-900 text-xs">{{ prod.name }}</span>
-                  </div>
-                  <div class="text-[11px] text-slate-500 mt-0.5">
-                    <strong class="text-slate-700 font-semibold">{{ prod.brand }}</strong> &bull;
-                    <span>Aplicación: General B2B</span>
-                  </div>
-                </td>
+                  <!-- SKU y Descripción -->
+                  <td class="py-3 px-4">
+                    <div class="flex items-center gap-2">
+                      <span [class]="getSkuBadgeColor(idx)" class="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase">
+                        {{ prod.internalCode }}
+                      </span>
+                      <span class="font-bold text-slate-900 text-xs">{{ prod.name }}</span>
+                    </div>
+                    <div class="text-[11px] text-slate-500 mt-0.5">
+                      <strong class="text-slate-700 font-semibold">{{ prod.brand }}</strong> &bull;
+                      <span>Aplicación: General B2B</span>
+                    </div>
+                  </td>
 
-                <!-- Categoría y OEM -->
-                <td class="py-3 px-4">
-                  <div class="text-slate-800 font-medium text-[11px]">{{ prod.category }}</div>
-                  <div class="text-[10px] font-mono text-slate-400 mt-0.5">
-                    # OEM: {{ getOemCode(prod) }}
-                  </div>
-                </td>
+                  <!-- Categoría y OEM -->
+                  <td class="py-3 px-4">
+                    <div class="text-slate-800 font-medium text-[11px]">{{ prod.category }}</div>
+                    <div class="text-[10px] font-mono text-slate-400 mt-0.5">
+                      # OEM: {{ getOemCode(prod) }}
+                    </div>
+                  </td>
 
-                <!-- Matriz de Precios B2B -->
-                <td class="py-3 px-4 text-center">
-                  <div class="inline-flex items-center gap-1.5 font-mono text-[10px]">
-                    <span class="bg-slate-50 border border-slate-200 px-2 py-0.5 rounded text-slate-600">
-                      T1 Normal: <strong class="text-slate-900">S/ {{ getTierPrice(prod, 1) | number:'1.2-2' }}</strong>
-                    </span>
-                    <span class="bg-slate-50 border border-slate-200 px-2 py-0.5 rounded text-slate-600">
-                      T2 Taller: <strong class="text-slate-900">S/ {{ getTierPrice(prod, 2) | number:'1.2-2' }}</strong>
-                    </span>
-                    <span class="bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-emerald-900 font-bold">
-                      T3 Mayor: <strong class="text-emerald-950">S/ {{ getTierPrice(prod, 3) | number:'1.2-2' }}</strong>
-                    </span>
-                  </div>
-                </td>
+                  <!-- Matriz de Precios B2B -->
+                  <td class="py-3 px-4 text-center">
+                    <div class="inline-flex items-center gap-1.5 font-mono text-[10px]">
+                      <span class="bg-slate-50 border border-slate-200 px-2 py-0.5 rounded text-slate-600">
+                        T1 Normal: <strong class="text-slate-900">S/ {{ getTierPrice(prod, 1) | number:'1.2-2' }}</strong>
+                      </span>
+                      <span class="bg-slate-50 border border-slate-200 px-2 py-0.5 rounded text-slate-600">
+                        T2 Taller: <strong class="text-slate-900">S/ {{ getTierPrice(prod, 2) | number:'1.2-2' }}</strong>
+                      </span>
+                      <span class="bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded text-emerald-900 font-bold">
+                        T3 Mayor: <strong class="text-emerald-950">S/ {{ getTierPrice(prod, 3) | number:'1.2-2' }}</strong>
+                      </span>
+                    </div>
+                  </td>
 
-                <!-- Existencias Consolidadas -->
-                <td class="py-3 px-4 text-center">
-                  <div class="font-mono font-black text-xs text-slate-900">
-                    {{ prod.totalStock }} <span class="text-[10px] font-normal text-slate-500">en almacén</span>
-                  </div>
-                  <div class="text-[10px] text-slate-400 mt-0.5">
-                    {{ prod.stocks?.length || 0 }} lotes / proveedores
-                  </div>
-                </td>
+                  <!-- Existencias Consolidadas -->
+                  <td class="py-3 px-4 text-center">
+                    <div class="font-mono font-black text-xs text-slate-900">
+                      {{ prod.totalStock }} <span class="text-[10px] font-normal text-slate-500">en almacén</span>
+                    </div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">
+                      {{ prod.stocks?.length || 0 }} lotes / proveedores
+                    </div>
+                  </td>
 
-                <!-- Estado Stock -->
-                <td class="py-3 px-4 text-center">
-                  @if (prod.totalStock === 0) {
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                      <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Agotado
-                    </span>
-                  } @else if (prod.totalStock <= prod.minStock) {
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                      <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Crítico ({{ prod.totalStock }} un)
-                    </span>
-                  } @else {
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Stock Óptimo
-                    </span>
-                  }
-                </td>
-
-                <!-- Acciones -->
-                <td class="py-3 px-4 text-center">
-                  <div class="inline-flex items-center gap-1.5">
-                    <button type="button" (click)="openStock.emit(prod)"
-                      class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-mono text-[11px] font-semibold cursor-pointer transition-colors shadow-2xs">
-                      ↗ Kardex ({{ prod.stocks?.length || 0 }})
-                    </button>
-                    @if (canManage()) {
-                      <button type="button" (click)="openEdit.emit(prod)"
-                        class="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
-                        title="Editar Ficha Técnica">
-                        ✏️
-                      </button>
+                  <!-- Estado Stock -->
+                  <td class="py-3 px-4 text-center">
+                    @if (prod.totalStock === 0) {
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span> Agotado
+                      </span>
+                    } @else if (prod.totalStock <= prod.minStock) {
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> Crítico ({{ prod.totalStock }} un)
+                      </span>
+                    } @else {
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Stock Óptimo
+                      </span>
                     }
-                  </div>
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
+                  </td>
+
+                  <!-- Acciones -->
+                  <td class="py-3 px-4 text-center">
+                    <div class="inline-flex items-center gap-1.5">
+                      <button type="button" (click)="openStock.emit(prod)"
+                        class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-mono text-[11px] font-semibold cursor-pointer transition-colors shadow-2xs whitespace-nowrap">
+                        📦 Lotes / Stock ({{ prod.stocks?.length || 0 }})
+                      </button>
+                      @if (canManage()) {
+                        <button type="button" (click)="openEdit.emit(prod)"
+                          class="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                          title="Editar Ficha Técnica">
+                          ✏️
+                        </button>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   `
@@ -151,7 +237,7 @@ export class CatalogTableComponent {
   }
 
   getOemCode(prod: Product): string {
-    const stockWithSku = prod.stocks?.find(s => s.supplierSku);
+    const stockWithSku = prod.stocks?.find((s) => s.supplierSku);
     return stockWithSku?.supplierSku || `${prod.internalCode}-OEM`;
   }
 }

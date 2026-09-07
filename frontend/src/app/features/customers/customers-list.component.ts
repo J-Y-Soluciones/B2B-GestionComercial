@@ -20,17 +20,33 @@ import type { Customer, CreateCustomerPayload } from '../../core/models/customer
     CustomerDeleteModalComponent
   ],
   template: `
-    <div class="space-y-5">
-      <!-- Header -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
+    <div class="space-y-4 sm:space-y-5 font-sans">
+      <!-- HEADER ESTANDARIZADO -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
         <div>
-          <h2 class="text-base font-bold text-slate-900">Cartera de Clientes & Cuentas RUC</h2>
-          <p class="text-xs text-slate-500 mt-0.5">Gestión de cuentas para emisión de Boletas y Facturas electrónicas.</p>
+          <div class="text-[10px] font-mono font-bold tracking-wider text-slate-400 uppercase">
+            ALMACÉN &bull; MAESTROS &bull; DIRECTORIO FISCAL
+          </div>
+          <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+            <h1 class="text-base font-extrabold text-slate-900 tracking-tight">
+              Cartera de Clientes &amp; Cuentas RUC
+            </h1>
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">
+              Directorio B2B
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 mt-0.5">
+            Gestión de titulares comerciales para emisión fiscal de Boletas y Facturas electrónicas.
+          </p>
         </div>
-        <button type="button" (click)="openModal()"
-          class="inline-flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-4 py-2.5 rounded-lg cursor-pointer shadow-xs shrink-0 transition-colors">
-          <span>+ Nuevo Cliente</span>
-        </button>
+
+        <div class="flex items-center gap-2 self-end sm:self-auto">
+          <button type="button" (click)="openModal()"
+            class="text-xs bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-3.5 py-2 rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer shrink-0">
+            <span>+</span>
+            <span>Nuevo Cliente</span>
+          </button>
+        </div>
       </div>
 
       <!-- Buscador -->
@@ -40,7 +56,7 @@ import type { Customer, CreateCustomerPayload } from '../../core/models/customer
         [totalCount]="customers().length" 
         (searchChange)="onSearchChange($event)" />
 
-      <!-- Tabla -->
+      <!-- Tabla / Cards Adaptables -->
       <app-customers-table 
         [customers]="customers()" 
         [isLoading]="isLoading()" 
@@ -94,9 +110,11 @@ export class CustomersListComponent implements OnInit {
 
   loadCustomers(): void {
     this.isLoading.set(true);
-    this.customersApi.search(this.searchQuery(), 30).subscribe({
+    const query = this.searchQuery().trim();
+    // Si query está vacío, pasamos string vacío para que el backend liste por defecto
+    this.customersApi.search(query, 50).subscribe({
       next: (res) => {
-        this.customers.set(res);
+        this.customers.set(res || []);
         this.isLoading.set(false);
       },
       error: () => this.isLoading.set(false)

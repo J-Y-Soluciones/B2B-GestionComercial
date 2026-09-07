@@ -91,6 +91,21 @@ export class CotizadorComponent implements OnInit {
         this.searchProducts();
     }
 
+    // Categorías con conteo dinámico reactivo
+    categoryOptions = computed(() => {
+        const results = this.productSearchResults();
+        const countByCat = (c: string) => results.filter((p) => p.category === c).length;
+
+        return [
+            { name: 'Todas', count: results.length },
+            { name: 'Frenos', count: countByCat('Frenos') },
+            { name: 'Suspensión & Dirección', count: countByCat('Suspensión & Dirección') },
+            { name: 'Motor & Culata', count: countByCat('Motor & Culata') },
+            { name: 'Filtros & Lubricantes', count: countByCat('Filtros & Lubricantes') },
+            { name: 'Transmisión 4x4', count: countByCat('Transmisión & Embrague') },
+        ];
+    });
+
     @HostListener('window:keydown', ['$event'])
     handleProformaShortcuts(event: KeyboardEvent): void {
         if (event.key === 'F2') {

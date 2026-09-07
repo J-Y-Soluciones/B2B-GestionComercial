@@ -17,32 +17,31 @@ export interface UpdateStockEvent {
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        
-        <!-- Header -->
-        <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
-          <div class="flex items-center gap-3">
-            <div class="w-9 h-9 rounded-xl bg-emerald-900 text-white flex items-center justify-center text-sm font-bold shadow-xs">
-              📊
-            </div>
-            <div>
-              <div class="flex items-center gap-2">
-                <h3 class="text-sm font-bold text-slate-900">Kardex & Existencias Multi-Proveedor</h3>
-                <span class="font-mono text-[10px] font-bold bg-slate-200 text-slate-800 px-1.5 py-0.2 rounded">
-                  {{ product()?.internalCode }}
-                </span>
-              </div>
-              <p class="text-xs text-slate-500 mt-0.5">
-                {{ product()?.name }} &bull; Marca: {{ product()?.brand }}
-              </p>
-            </div>
-          </div>
-          <button (click)="close.emit()" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer leading-none">&times;</button>
+   <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+  <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150 my-auto">
+    <!-- Header -->
+    <div class="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/60 shrink-0">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-emerald-900 text-white flex items-center justify-center text-sm font-bold shadow-xs">
+          📦
         </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h3 class="text-sm font-bold text-slate-900">Lotes & Existencias por Proveedor</h3>
+            <span class="font-mono text-[10px] font-bold bg-slate-200 text-slate-800 px-1.5 py-0.2 rounded">
+              {{ product()?.internalCode }}
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 mt-0.5">
+            {{ product()?.name }} &bull; Marca: {{ product()?.brand }}
+          </p>
+        </div>
+      </div>
+      <button (click)="close.emit()" class="text-slate-400 hover:text-slate-600 text-lg font-bold cursor-pointer leading-none">&times;</button>
+    </div>
 
         <!-- Tabla de Distribución por Almacenes y Proveedores -->
-        <div class="p-5 space-y-3">
+        <div class="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1">
           <div class="flex items-center justify-between text-xs text-slate-500 font-medium">
             <span>Distribución por Sucursales y Red Mayorista</span>
             <span class="text-[10px] font-mono text-emerald-700">✓ Sincronizado en tiempo real</span>
@@ -142,12 +141,12 @@ export interface UpdateStockEvent {
           }
         </div>
 
-        <!-- Footer -->
-        <div class="p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between text-xs">
+        <!-- Footer fijo -->
+        <div class="p-3 sm:p-4 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between text-xs shrink-0">
           <span class="text-[11px] text-slate-400 font-mono">Auditoría: Registro trazable con Hash de transacción</span>
           <button type="button" (click)="close.emit()"
             class="px-3.5 py-1.5 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg cursor-pointer transition-colors shadow-2xs">
-            Cerrar Vista Kardex
+            Cerrar
           </button>
         </div>
       </div>

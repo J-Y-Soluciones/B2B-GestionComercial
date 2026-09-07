@@ -122,10 +122,23 @@ export class PrismaProformaRepository implements IProformaRepository {
         const currentYear = new Date().getFullYear();
         const prefix = `PROF-${currentYear}-`;
 
-        const count = await this.prisma.proforma.count({
+        // Busca la proforma con el código más alto del año en curso
+        const lastProforma = await this.prisma.proforma.findFirst({
             where: { code: { startsWith: prefix } },
+            orderBy: { code: 'desc' },
+            select: { code: true },
         });
 
-        return `${prefix}${(count + 1).toString().padStart(4, '0')}`;
+        let nextNumber = 1;
+
+        if (lastProforma?.code) {
+            const parts = lastProforma.code.split('-');
+            const lastSequence = parseInt(parts[parts.length - 1], 10);
+            if (!isNaN(lastSequence)) {
+                nextNumber = lastSequence + 1;
+            }
+        }
+
+        return `${prefix}${nextNumber.toString().padStart(4, '0')}`;
     }
 }

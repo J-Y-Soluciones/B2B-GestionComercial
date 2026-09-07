@@ -21,60 +21,81 @@ import type { Sale } from '../../core/models/sale.model';
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="space-y-6 max-w-7xl mx-auto pb-12">
-      <div class="flex items-center justify-between">
+    <div class="space-y-4 sm:space-y-5 font-sans">
+      <!-- HEADER ESTANDARIZADO -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
         <div>
-          <h1 class="text-xl font-black text-slate-900 tracking-tight">Historial de Ventas & Trazabilidad</h1>
-          <p class="text-xs text-slate-500 mt-0.5">Control fiscal B2B, comprobantes y auditoría transaccional</p>
+          <div class="text-[10px] font-mono font-bold tracking-wider text-slate-400 uppercase">
+            COMERCIAL &bull; CAJA &bull; HISTORIAL FISCAL
+          </div>
+          <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+            <h1 class="text-base font-extrabold text-slate-900 tracking-tight">
+              Historial de Ventas &amp; Trazabilidad
+            </h1>
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">
+              Cierre Diario
+            </span>
+          </div>
+          <p class="text-xs text-slate-500 mt-0.5">
+            Registro contable, comprobantes electrónicos emitidos y auditoría de Kardex.
+          </p>
         </div>
-        <button type="button" (click)="goToCheckout()"
-                class="px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold rounded-lg shadow-sm transition-all cursor-pointer">
-          + Nueva Venta Directa
-        </button>
+
+        <div class="flex items-center gap-2 self-end sm:self-auto">
+          <button type="button" (click)="goToCheckout()"
+            class="text-xs bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-3.5 py-2 rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer shrink-0">
+            <span>+</span>
+            <span>Nueva Venta Directa</span>
+            <kbd class="hidden md:inline-block text-[9px] font-mono bg-emerald-950 text-emerald-200 px-1 rounded">F8</kbd>
+          </button>
+        </div>
       </div>
 
+      <!-- KPIS -->
       <app-sales-kpis
         [totalSales]="totalAmountSum()"
         [salesCount]="activeSalesCount()"
         [invoicesCount]="invoicesCount()"
         [averageMargin]="grossMargin()" />
 
+      <!-- TABLA / CARDS -->
       <app-sales-table
         [sales]="sales()"
         (viewAudit)="selectedSaleForAudit.set($event)"
         (requestCancel)="openCancelModal($event)" />
 
+      <!-- DRAWER DE AUDITORÍA -->
       <app-sales-audit-drawer
         [sale]="selectedSaleForAudit()"
         (close)="selectedSaleForAudit.set(null)" />
 
-      <!-- Modal de Anulación / Devolución de Stock -->
+      <!-- MODAL DE ANULACIÓN / REVERSA DE KARDEX -->
       @if (saleToCancel()) {
-        <div class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-2xs flex items-center justify-center p-4">
-          <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+        <div class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div class="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 my-auto">
             <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto text-xl font-bold">
               ↩
             </div>
             <div class="text-center">
               <h3 class="text-sm font-bold text-slate-900">Anular Venta {{ saleToCancel()?.code }}</h3>
               <p class="text-xs text-slate-500 mt-1">
-                Se anulará el comprobante fiscal y se devolverán los repuestos al Kardex físico.
+                Se anulará el comprobante y los repuestos retornarán automáticamente al inventario.
               </p>
             </div>
 
             <div class="space-y-1 text-left">
-              <label class="text-[11px] font-bold text-slate-600">Motivo de Anulación / Devolución:</label>
-              <textarea [(ngModel)]="cancelReason" rows="2" placeholder="Ej: Error en repuesto solicitado por cliente..."
-                        class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-1 focus:ring-rose-500"></textarea>
+              <label class="text-[10px] font-mono font-bold uppercase text-slate-500 block">Motivo de Anulación / Devolución:</label>
+              <textarea [(ngModel)]="cancelReason" rows="2" placeholder="Ej: Error en repuesto solicitado o desistimiento..."
+                class="w-full text-xs p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:bg-white focus:border-rose-500 transition-colors"></textarea>
             </div>
 
-            <div class="flex gap-2 pt-2">
+            <div class="flex gap-2 pt-1">
               <button type="button" (click)="saleToCancel.set(null)"
-                      class="flex-1 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer">
+                class="flex-1 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer">
                 Cancelar
               </button>
               <button type="button" (click)="confirmCancelSale()" [disabled]="isCancelling()"
-                      class="flex-1 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 rounded-lg shadow-2xs transition-colors cursor-pointer">
+                class="flex-1 py-2 text-xs font-bold text-white bg-rose-700 hover:bg-rose-800 disabled:opacity-50 rounded-lg shadow-xs transition-colors cursor-pointer">
                 {{ isCancelling() ? 'Procesando...' : 'Confirmar Anulación' }}
               </button>
             </div>
@@ -110,7 +131,11 @@ export class SalesListComponent implements OnInit {
   });
 
   invoicesCount = computed(() => {
-    return this.sales().filter(s => !this.isSaleCancelled(s) && !!s.invoice).length;
+    return this.sales().filter(
+      s => !this.isSaleCancelled(s) &&
+        !!s.invoice &&
+        (s.invoice.series === 'B001' || s.invoice.series === 'F001')
+    ).length;
   });
 
   grossMargin = computed(() => {

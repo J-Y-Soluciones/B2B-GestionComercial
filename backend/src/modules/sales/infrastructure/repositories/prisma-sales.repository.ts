@@ -116,6 +116,13 @@ export class PrismaSalesRepository implements ISalesRepository {
             });
 
             // 3. Crear comprobante (Factura / Boleta / Nota de Venta)
+            const isFiscal = data.invoice.type === 'BOLETA' || data.invoice.type === 'FACTURA';
+
+            // Usa 'ACCEPTED' para no romper la restricción del enum InvoiceStatus de Prisma
+            const invoiceStatus = (data.invoice.status === 'INTERNAL' ? 'ACCEPTED' : (data.invoice.status || 'ACCEPTED')) as any;
+            const invoiceCdrHash = isFiscal ? `CDR-${Date.now()}` : null;
+            const invoiceExternalId = isFiscal ? `EFACT-${Date.now()}` : null;
+
             await tx.invoice.create({
                 data: {
                     saleId: sale.id,
@@ -123,9 +130,9 @@ export class PrismaSalesRepository implements ISalesRepository {
                     series: data.invoice.series,
                     correlative: data.invoice.correlative,
                     fullCode: data.invoice.fullCode,
-                    status: 'ACCEPTED',
-                    cdrHash: `HASH-${Date.now()}`,
-                    externalId: `EFACT-MOCK-${Date.now()}`,
+                    status: invoiceStatus,
+                    cdrHash: invoiceCdrHash,
+                    externalId: invoiceExternalId,
                 },
             });
 

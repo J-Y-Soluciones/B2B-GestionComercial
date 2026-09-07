@@ -1,11 +1,12 @@
+//src/app/features/catalog/components/catalog-kpis.component.ts
 import { Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
-    selector: 'app-catalog-kpis',
-    standalone: true,
-    imports: [CommonModule],
-    template: `
+  selector: 'app-catalog-kpis',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <!-- KPI 1 -->
       <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
@@ -64,8 +65,8 @@ import { CommonModule } from '@angular/common';
   `
 })
 export class CatalogKpisComponent {
-    totalProducts = input.required<number>();
-    totalUnits = input.required<number>();
-    suppliersCount = input.required<number>();
-    lowStockCount = input.required<number>();
+  totalProducts = input.required<number>();
+  totalUnits = input.required<number>();
+  suppliersCount = input.required<number>();
+  lowStockCount = input.required<number>();
 }

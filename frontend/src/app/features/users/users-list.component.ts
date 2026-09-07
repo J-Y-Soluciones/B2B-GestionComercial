@@ -18,29 +18,37 @@ import { UserModalComponent, type UserFormData } from './components/user-modal.c
     UserModalComponent
   ],
   template: `
-    <div class="space-y-6">
-      <!-- HEADER -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div class="space-y-4 sm:space-y-5 font-sans">
+      <!-- HEADER ESTANDARIZADO -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
         <div>
-          <div class="text-[11px] font-mono font-semibold tracking-wider text-slate-400 uppercase">
+          <div class="text-[10px] font-mono font-bold tracking-wider text-slate-400 uppercase">
             SISTEMA &bull; SEGURIDAD &bull; CONTROL DE ACCESO
           </div>
-          <div class="flex items-center gap-2.5 mt-0.5">
-            <h1 class="text-base font-bold text-slate-900">Usuarios y Perfiles de Acceso</h1>
-            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800">
+          <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+            <h1 class="text-base font-extrabold text-slate-900 tracking-tight">
+              Usuarios y Perfiles de Acceso
+            </h1>
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">
               Acceso Exclusivo: Administrador
             </span>
           </div>
+          <p class="text-xs text-slate-500 mt-0.5">
+            Administración de colaboradores, asignación de roles y control de privilegios en caja y cotizador.
+          </p>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 self-end sm:self-auto">
           <button type="button" (click)="loadUsers()"
-            class="text-xs text-slate-600 bg-white border border-slate-200 px-3.5 py-1.5 rounded-lg shadow-xs hover:bg-slate-50 transition-colors flex items-center gap-1.5 cursor-pointer font-medium">
-            <span>🔄</span> Actualizar
+            class="text-xs text-slate-600 bg-white border border-slate-200 px-3 py-2 rounded-xl shadow-2xs hover:bg-slate-50 transition-colors flex items-center gap-1.5 cursor-pointer font-medium"
+            title="Recargar colaboradores">
+            <span>🔄</span>
+            <span class="hidden sm:inline">Actualizar</span>
           </button>
           <button type="button" (click)="openCreateModal()"
-            class="text-xs bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-3.5 py-1.5 rounded-lg shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer">
-            <span>+ Nuevo Colaborador</span>
+            class="text-xs bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-3.5 py-2 rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer shrink-0">
+            <span>+</span>
+            <span>Nuevo Colaborador</span>
           </button>
         </div>
       </div>
@@ -58,7 +66,7 @@ import { UserModalComponent, type UserFormData } from './components/user-modal.c
         (searchChange)="searchQuery.set($event)" 
         (roleChange)="selectedRole.set($event)" />
 
-      <!-- TABLA -->
+      <!-- TABLA / CARDS RESPONSIVE -->
       <app-users-table 
         [users]="filteredUsers()" 
         [isLoading]="isLoading()" 

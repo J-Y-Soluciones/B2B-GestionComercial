@@ -13,11 +13,15 @@ export class CustomersApiService {
     readonly selectedCustomer = signal<Customer | null>(null);
     readonly isSearching = signal<boolean>(false);
 
-    search(query: string, limit = 10): Observable<Customer[]> {
+    search(query: string = '', limit = 10): Observable<Customer[]> {
         this.isSearching.set(true);
-        const params = new HttpParams()
-            .set('query', query.trim())
-            .set('limit', limit.toString());
+
+        let params = new HttpParams().set('limit', limit.toString());
+
+        const cleanQuery = query ? query.trim() : '';
+        if (cleanQuery) {
+            params = params.set('query', cleanQuery);
+        }
 
         return this.http.get<Customer[]>(`${this.baseUrl}/search`, { params }).pipe(
             tap({
@@ -49,7 +53,7 @@ export class CustomersApiService {
 
     delete(id: string): Observable<void> {
         return this.http.delete<void>(`${this.baseUrl}/${id}`);
-    } 
+    }
 
     selectCustomer(customer: Customer | null): void {
         this.selectedCustomer.set(customer);

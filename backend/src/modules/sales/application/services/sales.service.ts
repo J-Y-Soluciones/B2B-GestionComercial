@@ -66,10 +66,16 @@ export class SalesService {
         const totalCount = await this.salesRepo.countTotalSales();
         const code = `VNT-${new Date().getFullYear()}-${String(totalCount + 1).padStart(5, '0')}`;
 
+        // Generar correlativo según tipo
+        const isFiscal = dto.invoiceType === 'BOLETA' || dto.invoiceType === 'FACTURA';
         const series = dto.invoiceType === 'FACTURA' ? 'F001' : dto.invoiceType === 'BOLETA' ? 'B001' : 'NV01';
         const seriesCount = await this.salesRepo.countSalesBySeries(series);
         const correlative = seriesCount + 1;
         const fullCode = `${series}-${String(correlative).padStart(7, '0')}`;
+
+        // Estado y Firma según si es fiscal o interno
+        const invoiceStatus = isFiscal ? 'ACCEPTED' : 'INTERNAL';
+        const hashCpe = isFiscal ? `HASH-${Date.now()}` : null;
 
         return this.salesRepo.executeSaleTransaction({
             code,
@@ -87,6 +93,8 @@ export class SalesService {
                 series,
                 correlative,
                 fullCode,
+                status: invoiceStatus,
+                hashCpe,
             },
         });
     }

@@ -1,4 +1,3 @@
-//src/app/features/customers/components/customer-modal.component.ts
 import { Component, input, output, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -9,75 +8,84 @@ import type { Customer, CreateCustomerPayload } from '../../../core/models/custo
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-lg overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-          <h3 class="text-sm font-bold text-slate-900">
-            {{ customer() ? 'Editar Datos del Cliente' : 'Registrar Nuevo Cliente' }}
-          </h3>
-          <button type="button" (click)="close.emit()" class="text-slate-400 hover:text-slate-600 text-lg leading-none cursor-pointer">&times;</button>
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-lg max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 my-auto">
+        
+        <!-- Header Fijo -->
+        <div class="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900">
+              {{ customer() ? 'Editar Datos del Cliente' : 'Registrar Nuevo Cliente' }}
+            </h3>
+            <p class="text-[10px] text-slate-400">Configuración de cuenta fiscal para facturación</p>
+          </div>
+          <button type="button" (click)="close.emit()" class="text-slate-400 hover:text-slate-600 text-base font-bold cursor-pointer leading-none">&times;</button>
         </div>
 
-        <form (ngSubmit)="onSubmit()" class="p-6 space-y-4 text-xs">
-          @if (errorMessage() || serverError()) {
-            <div class="p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-700 font-medium flex items-center gap-2">
-              <span class="font-bold">⚠️</span>
-              <span>{{ errorMessage() || serverError() }}</span>
-            </div>
-          }
+        <!-- Formulario Scrolleable -->
+        <form (ngSubmit)="onSubmit()" class="flex-1 flex flex-col overflow-hidden">
+          <div class="p-4 sm:p-5 space-y-3.5 text-xs overflow-y-auto flex-1">
+            @if (errorMessage() || serverError()) {
+              <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 font-medium flex items-center gap-2">
+                <span class="font-bold text-sm">⚠️</span>
+                <span>{{ errorMessage() || serverError() }}</span>
+              </div>
+            }
 
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block font-semibold text-slate-700 mb-1">Tipo Fiscal</label>
-              <select [(ngModel)]="formType" name="type" (change)="onTypeChange()"
-                class="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
-                <option value="NATURAL">DNI (8 dígitos) - Boleta Electrónica</option>
-                <option value="BUSINESS">RUC (11 dígitos) - Factura / Boleta</option>
-              </select>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider mb-1">Tipo Fiscal</label>
+                <select [(ngModel)]="formType" name="type" (change)="onTypeChange()"
+                  class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 outline-none focus:bg-white focus:border-emerald-700 text-slate-800">
+                  <option value="NATURAL">DNI (8 dígitos) - Boleta</option>
+                  <option value="BUSINESS">RUC (11 dígitos) - Factura</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  N° Documento ({{ formType === 'BUSINESS' ? '11 dígitos' : '8 dígitos' }}) *
+                </label>
+                <input type="text" [(ngModel)]="formDoc" name="doc" [maxLength]="formType === 'BUSINESS' ? 11 : 8"
+                  placeholder="Ej. 20123456789" required
+                  class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 outline-none focus:bg-white focus:border-emerald-700 font-mono font-bold text-slate-900" />
+              </div>
             </div>
+
             <div>
-              <label class="block font-semibold text-slate-700 mb-1">
-                Documento ({{ formType === 'BUSINESS' ? '11 dígitos' : '8 dígitos' }})
-              </label>
-              <input type="text" [(ngModel)]="formDoc" name="doc" [maxLength]="formType === 'BUSINESS' ? 11 : 8"
-                placeholder="Ej. 20123456789" required
-                class="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500 font-mono" />
+              <label class="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider mb-1">Razón Social / Nombre Completo *</label>
+              <input type="text" [(ngModel)]="formName" name="name" placeholder="Ej. Transportes del Pacífico SAC" required
+                class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 outline-none focus:bg-white focus:border-emerald-700 text-slate-900" />
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider mb-1">Teléfono / WhatsApp</label>
+                <input type="text" [(ngModel)]="formPhone" name="phone" placeholder="999888777"
+                  class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 outline-none focus:bg-white focus:border-emerald-700 font-mono text-slate-800" />
+              </div>
+              <div>
+                <label class="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider mb-1">Correo Electrónico</label>
+                <input type="email" [(ngModel)]="formEmail" name="email" placeholder="contacto@empresa.pe"
+                  class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 outline-none focus:bg-white focus:border-emerald-700 text-slate-800" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider mb-1">Dirección Fiscal</label>
+              <input type="text" [(ngModel)]="formAddress" name="address" placeholder="Av. Nicolás de Piérola 1234, Lima"
+                class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 outline-none focus:bg-white focus:border-emerald-700 text-slate-800" />
             </div>
           </div>
 
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">Razón Social / Nombre Completo</label>
-            <input type="text" [(ngModel)]="formName" name="name" placeholder="Ej. Transportes del Pacífico SAC" required
-              class="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500" />
-          </div>
-
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block font-semibold text-slate-700 mb-1">Teléfono / WhatsApp</label>
-              <input type="text" [(ngModel)]="formPhone" name="phone" placeholder="999888777"
-                class="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500 font-mono" />
-            </div>
-            <div>
-              <label class="block font-semibold text-slate-700 mb-1">Correo Electrónico</label>
-              <input type="email" [(ngModel)]="formEmail" name="email" placeholder="contacto@empresa.pe"
-                class="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500" />
-            </div>
-          </div>
-
-          <div>
-            <label class="block font-semibold text-slate-700 mb-1">Dirección Fiscal</label>
-            <input type="text" [(ngModel)]="formAddress" name="address" placeholder="Av. Nicolás de Piérola 1234, Lima"
-              class="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500" />
-          </div>
-
-          <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
+          <!-- Footer Fijo -->
+          <div class="p-3.5 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end gap-2 shrink-0">
             <button type="button" (click)="close.emit()"
-              class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg cursor-pointer">
+              class="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-700 font-semibold rounded-lg cursor-pointer transition-colors shadow-2xs">
               Cancelar
             </button>
             <button type="submit" [disabled]="isSaving()"
-              class="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 disabled:bg-slate-300 text-white font-bold rounded-lg cursor-pointer shadow-xs">
-              {{ isSaving() ? 'Guardando...' : (customer() ? 'Actualizar' : 'Guardar') }}
+              class="px-4 py-2 bg-emerald-800 hover:bg-emerald-900 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold rounded-lg cursor-pointer shadow-xs transition-colors">
+              {{ isSaving() ? 'Guardando...' : (customer() ? 'Actualizar Cliente' : 'Guardar Cliente') }}
             </button>
           </div>
         </form>

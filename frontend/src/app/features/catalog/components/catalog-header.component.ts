@@ -1,3 +1,4 @@
+//src/app/features/catalog/components/catalog-header.component.ts
 import { Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
@@ -22,24 +23,31 @@ import { CommonModule } from '@angular/common';
         </div>
       </div>
 
-      <div class="flex items-center gap-2 flex-wrap">
+      <div class="flex items-center gap-2 flex-wrap w-full sm:w-auto justify-end">
+        <!-- Actualizar F5 -->
         <button type="button" (click)="refresh.emit()"
-          class="text-xs text-slate-600 bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-xs hover:bg-slate-50 transition-colors flex items-center gap-1.5 cursor-pointer font-medium">
-          <span>🔄</span> Actualizar <kbd class="text-[9px] font-mono text-slate-400 bg-slate-100 px-1 rounded">F5</kbd>
+          class="text-xs text-slate-600 bg-white border border-slate-200 px-2.5 sm:px-3 py-1.5 rounded-lg shadow-xs hover:bg-slate-50 transition-colors flex items-center gap-1.5 cursor-pointer font-medium"
+          title="Actualizar catálogo">
+          <span>🔄</span>
+          <span class="hidden sm:inline">Actualizar</span>
+          <kbd class="hidden md:inline-block text-[9px] font-mono text-slate-400 bg-slate-100 px-1 rounded">F5</kbd>
         </button>
+
+        <!-- Botón Excel (Solo visible en tablets y desktop) -->
         <button type="button" disabled
-          class="text-xs text-slate-400 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg shadow-2xs flex items-center gap-1.5 cursor-not-allowed font-medium">
+          class="hidden sm:flex text-xs text-slate-400 bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg shadow-2xs items-center gap-1.5 cursor-not-allowed font-medium">
           <span>📥</span> 
-          <span>Importar / Exportar Excel</span>
-          <span class="text-[9px] font-mono bg-slate-200 text-slate-500 px-1.5 py-0.2 rounded font-bold uppercase">
-            Próximamente
-          </span>
+          <span>Excel</span>
+          <span class="text-[9px] font-mono bg-slate-200 text-slate-500 px-1 rounded font-bold uppercase">Pronto</span>
         </button>
+
+        <!-- Nuevo Repuesto F4 -->
         @if (canManage()) {
           <button type="button" (click)="create.emit()"
-            class="text-xs bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-3.5 py-1.5 rounded-lg shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer">
-            <span>+ Nuevo Repuesto</span>
-            <kbd class="text-[9px] font-mono bg-emerald-900 text-emerald-200 px-1 rounded">F4</kbd>
+            class="text-xs bg-emerald-800 hover:bg-emerald-900 text-white font-bold px-3 sm:px-3.5 py-1.5 rounded-lg shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer shrink-0">
+            <span>+</span>
+            <span>Nuevo Repuesto</span>
+            <kbd class="hidden md:inline-block text-[9px] font-mono bg-emerald-900 text-emerald-200 px-1 rounded">F4</kbd>
           </button>
         }
       </div>
