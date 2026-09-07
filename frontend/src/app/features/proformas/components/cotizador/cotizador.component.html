@@ -25,18 +25,27 @@
     <main class="flex-1 p-6 grid grid-cols-1 xl:grid-cols-12 gap-6 max-w-[1600px] w-full mx-auto">
         <!-- COLUMNA IZQUIERDA: Flujo Operativo (8 cols) -->
         <div class="xl:col-span-8 space-y-6">
-            <!-- 1. Selector de Cliente -->
+            <!-- Reemplaza la sección 1 en cotizador.component.html con esto: -->
             <section class="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
                 <div class="flex items-center justify-between mb-3">
-                    <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
-                        <span>1. Cuenta &amp; Razón Social</span>
-                    </h2>
-                    @if (selectedCustomer()) {
-                    <button (click)="clearCustomer()"
-                        class="text-xs text-emerald-600 hover:text-emerald-700 font-medium cursor-pointer">
-                        Cambiar cliente
-                    </button>
-                    }
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-sm font-bold text-slate-800">1. Cuenta &amp; Razón Social</h2>
+                        <span class="text-[10px] text-slate-400 font-mono">Paso 1</span>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        @if (!selectedCustomer()) {
+                        <button type="button" (click)="selectCasualCustomer()"
+                            class="px-2.5 py-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg flex items-center gap-1 transition-all cursor-pointer shadow-2xs">
+                            <span>⚡</span> Mostrador / Clientes Varios
+                        </button>
+                        } @else {
+                        <button (click)="clearCustomer()"
+                            class="text-xs text-emerald-600 hover:text-emerald-700 font-medium cursor-pointer">
+                            Cambiar cliente
+                        </button>
+                        }
+                    </div>
                 </div>
 
                 @if (!selectedCustomer()) {
@@ -69,12 +78,14 @@
                         <div class="flex items-center gap-2">
                             <h3 class="text-sm font-bold text-slate-900">{{ selectedCustomer()?.name }}</h3>
                             <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[11px] font-bold rounded">
-                                {{ selectedCustomer()?.type === 'BUSINESS' ? 'Factura Apta' : 'Boleta Apta' }}
+                                {{ selectedCustomer()?.documentNumber === '00000000' ? 'Comodín Mostrador' :
+                                (selectedCustomer()?.type === 'BUSINESS' ? 'Factura Apta' : 'Boleta Apta') }}
                             </span>
                         </div>
                         <p class="text-xs text-slate-600 font-mono mt-0.5">
                             RUC/DNI: <strong>{{ selectedCustomer()?.documentNumber }}</strong>
-                            @if (selectedCustomer()?.phone) { &bull; Tel: {{ selectedCustomer()?.phone }} }
+                            @if (selectedCustomer()?.phone && selectedCustomer()?.phone !== '000000000') { &bull; Tel:
+                            {{ selectedCustomer()?.phone }} }
                         </p>
                         @if (selectedCustomer()?.address) {
                         <p class="text-xs text-slate-500 mt-0.5">{{ selectedCustomer()?.address }}</p>

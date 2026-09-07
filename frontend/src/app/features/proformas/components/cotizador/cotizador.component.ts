@@ -21,6 +21,7 @@ export interface CotizadorCartItem {
     requiresApproval: boolean;
     selectedSupplierId?: string;
     selectedSupplierName?: string;
+    supplierId?: string;
 }
 
 @Component({
@@ -62,17 +63,18 @@ export class CotizadorComponent implements OnInit {
     lastCreatedProforma = signal<{ id: string; code: string; status: string } | null>(null);
     formErrorMessage = signal<string | null>(null);
 
-    // Computed Totales & Métricas
+    // Computed Totales & Métricas (Precios de Lista con IGV Incluido)
+    total = computed(() => {
+        const sum = this.cart().reduce((acc, item) => acc + item.subtotal, 0);
+        return Number(sum.toFixed(2));
+    });
+
     subtotalNeto = computed(() => {
-        return this.cart().reduce((acc, item) => acc + item.subtotal, 0);
+        return Number((this.total() / 1.18).toFixed(2));
     });
 
     igv = computed(() => {
-        return Number((this.subtotalNeto() * 0.18).toFixed(2));
-    });
-
-    total = computed(() => {
-        return Number((this.subtotalNeto() + this.igv()).toFixed(2));
+        return Number((this.total() - this.subtotalNeto()).toFixed(2));
     });
 
     totalItemsCount = computed(() => {
@@ -174,7 +176,11 @@ export class CotizadorComponent implements OnInit {
         if (!prod || !prod.stocks || prod.stocks.length === 0) return undefined;
         const selectedId = this.selectedSupplierByProduct()[prod.id];
         if (selectedId) {
-            const found = prod.stocks.find((s: any) => s.id === selectedId || s.supplierId === selectedId);
+            const found = prod.stocks.find((s: any) =>
+                s.id === selectedId ||
+                s.supplierId === selectedId ||
+                s.supplier?.id === selectedId
+            );
             if (found) return found;
         }
         return prod.stocks[0];
@@ -224,9 +230,10 @@ export class CotizadorComponent implements OnInit {
             return;
         }
 
-        const supplierId = chosenStock.supplierId || chosenStock.supplier?.id || chosenStock.id;
+        // Obtener el UUID del proveedor real (nunca el ID de la fila de stock)
+        const supplierId = chosenStock.supplierId || chosenStock.supplier?.id;
         const supplierName = chosenStock.supplierName || chosenStock.supplier?.name || 'Proveedor Seleccionado';
-        const availableStock = Number(chosenStock.stock) || 0;
+        const availableStock = Number(chosenStock.stock ?? chosenStock.quantity ?? 0);
 
         if (availableStock <= 0) {
             this.toastService.show(`Sin existencias con ${supplierName}.`, 'error');
@@ -258,6 +265,7 @@ export class CotizadorComponent implements OnInit {
             product,
             quantity: 1,
             selectedTier: 1,
+            supplierId,
             unitPrice: price,
             subtotal: price,
             requiresApproval: false,
@@ -266,7 +274,7 @@ export class CotizadorComponent implements OnInit {
         };
 
         this.cart.update((prev) => [...prev, newItem]);
-        this.toastService.show(`"${product.name}" agregado.`, 'info', 1500);
+        this.toastService.show(`"${product.name}" agregado (${supplierName}).`, 'info', 1500);
     }
 
     updateQuantity(index: number, newQty: number): void {
@@ -369,6 +377,7 @@ export class CotizadorComponent implements OnInit {
             customerId: customer.id,
             items: this.cart().map((item) => ({
                 productId: item.product.id,
+                supplierId: item.supplierId,
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
                 priceTier: item.selectedTier,
@@ -420,5 +429,39 @@ export class CotizadorComponent implements OnInit {
         } else {
             this.router.navigate(['/proformas']);
         }
+    }
+
+    selectCasualCustomer(): void {
+        this.isSearchingCustomer.set(true);
+
+        // Buscamos directamente por "00000000" o por "CLIENTES VARIOS"
+        this.customersApi.search('00000000', 5).subscribe({
+            next: (res) => {
+                this.isSearchingCustomer.set(false);
+                const found = res.find(c => c.documentNumber === '00000000') || res[0];
+
+                if (found && found.id) {
+                    this.selectCustomer(found);
+                } else {
+                    // Segundo intento por nombre si no lo ubicó por documento
+                    this.customersApi.search('CLIENTES VARIOS', 1).subscribe({
+                        next: (byName) => {
+                            if (byName && byName.length > 0) {
+                                this.selectCustomer(byName[0]);
+                            } else {
+                                this.toastService.show(
+                                    'No se encontró el cliente comodín en la BD. Ejecuta "npx prisma db seed".',
+                                    'error'
+                                );
+                            }
+                        }
+                    });
+                }
+            },
+            error: () => {
+                this.isSearchingCustomer.set(false);
+                this.toastService.show('Error al consultar el cliente comodín.', 'error');
+            }
+        });
     }
 }

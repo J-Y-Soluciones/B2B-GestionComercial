@@ -1,12 +1,13 @@
+// src/app/features/catalog/components/catalog-table.component.ts
 import { Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import type { Product } from '../../../core/models/product.model';
 
 @Component({
-    selector: 'app-catalog-table',
-    standalone: true,
-    imports: [CommonModule],
-    template: `
+  selector: 'app-catalog-table',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
     <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs border-collapse">
@@ -77,10 +78,10 @@ import type { Product } from '../../../core/models/product.model';
                 <!-- Existencias Consolidadas -->
                 <td class="py-3 px-4 text-center">
                   <div class="font-mono font-black text-xs text-slate-900">
-                    {{ prod.totalStock }} unidades en red
+                    {{ prod.totalStock }} <span class="text-[10px] font-normal text-slate-500">en almacén</span>
                   </div>
-                  <div class="text-[9px] font-mono text-slate-400 mt-0.5">
-                    Lima: {{ getStockBreakdown(prod, 0) }} &bull; Callao: {{ getStockBreakdown(prod, 1) }} &bull; Mayorista: {{ getStockBreakdown(prod, 2) }}
+                  <div class="text-[10px] text-slate-400 mt-0.5">
+                    {{ prod.stocks?.length || 0 }} lotes / proveedores
                   </div>
                 </td>
 
@@ -126,36 +127,31 @@ import type { Product } from '../../../core/models/product.model';
   `
 })
 export class CatalogTableComponent {
-    products = input.required<Product[]>();
-    isLoading = input<boolean>(false);
-    canManage = input<boolean>(false);
+  products = input.required<Product[]>();
+  isLoading = input<boolean>(false);
+  canManage = input<boolean>(false);
 
-    openStock = output<Product>();
-    openEdit = output<Product>();
+  openStock = output<Product>();
+  openEdit = output<Product>();
 
-    getTierPrice(product: Product, tierNumber: number): number {
-        const t = product.priceTiers?.find((item) => item.tier === tierNumber);
-        return t ? Number(t.price) : 0;
-    }
+  getTierPrice(product: Product, tierNumber: number): number {
+    const t = product.priceTiers?.find((item) => item.tier === tierNumber);
+    return t ? Number(t.price) : 0;
+  }
 
-    getSkuBadgeColor(idx: number): string {
-        const colors = [
-            'bg-blue-50 text-blue-800 border-blue-200',
-            'bg-amber-50 text-amber-800 border-amber-200',
-            'bg-emerald-50 text-emerald-800 border-emerald-200',
-            'bg-rose-50 text-rose-800 border-rose-200',
-            'bg-purple-50 text-purple-800 border-purple-200',
-        ];
-        return colors[idx % colors.length];
-    }
+  getSkuBadgeColor(idx: number): string {
+    const colors = [
+      'bg-blue-50 text-blue-800 border-blue-200',
+      'bg-amber-50 text-amber-800 border-amber-200',
+      'bg-emerald-50 text-emerald-800 border-emerald-200',
+      'bg-rose-50 text-rose-800 border-rose-200',
+      'bg-purple-50 text-purple-800 border-purple-200',
+    ];
+    return colors[idx % colors.length];
+  }
 
-    getOemCode(prod: Product): string {
-        const stockWithSku = prod.stocks?.find(s => s.supplierSku);
-        return stockWithSku?.supplierSku || `${prod.internalCode}-OEM`;
-    }
-
-    getStockBreakdown(prod: Product, index: number): number {
-        if (!prod.stocks || prod.stocks.length === 0) return 0;
-        return prod.stocks[index]?.stock || 0;
-    }
+  getOemCode(prod: Product): string {
+    const stockWithSku = prod.stocks?.find(s => s.supplierSku);
+    return stockWithSku?.supplierSku || `${prod.internalCode}-OEM`;
+  }
 }

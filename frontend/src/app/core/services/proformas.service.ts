@@ -2,15 +2,17 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 
-export interface ProformaItemDto {
+export interface ProformaDetailDto {
     id: string;
-    partId: string;
+    productId: string;
     quantity: number;
     unitPrice: number;
+    priceTier: number;
     subtotal: number;
-    part: {
-        sku: string;
-        description: string;
+    product?: {
+        id: string;
+        internalCode: string;
+        name: string;
         brand: string;
     };
 }
@@ -18,26 +20,24 @@ export interface ProformaItemDto {
 export interface ProformaDto {
     id: string;
     code: string;
-    status: 'DRAFT' | 'PENDING' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'EXPIRED';
-    priceTier: string;
-    subtotal: number;
-    igv: number;
+    status: 'DRAFT' | 'PENDING' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'CONVERTED';
     totalAmount: number;
-    notes?: string;
-    rejectionReason?: string;
     createdAt: string;
-    seller: {
-        email: string;
-    };
-    customer: {
+    expiresAt: string;
+    seller?: {
         id: string;
-        legalName: string;
-        documentType: string;
+        email: string;
+        role: string;
+    };
+    customer?: {
+        id: string;
+        name: string;
         documentNumber: string;
         phone?: string;
+        email?: string;
         address?: string;
     };
-    items: ProformaItemDto[];
+    details: ProformaDetailDto[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -45,7 +45,6 @@ export class ProformasService {
     private readonly http = inject(HttpClient);
     private readonly API_URL = 'http://localhost:3000/proformas';
 
-    // Estado reactivo compartido en toda la aplicación
     readonly pendingApprovalsCount = signal<number>(0);
 
     getProformas(status?: string): Observable<ProformaDto[]> {
@@ -57,6 +56,14 @@ export class ProformasService {
                 }
             })
         );
+    }
+
+    getById(id: string): Observable<ProformaDto> {
+        return this.http.get<ProformaDto>(`${this.API_URL}/${id}`);
+    }
+
+    cancelProforma(id: string, reason = 'Desistimiento de compra en mostrador'): Observable<ProformaDto> {
+        return this.http.patch<ProformaDto>(`${this.API_URL}/${id}/reject`, { reason });
     }
 
     refreshPendingCount(): void {
@@ -77,6 +84,7 @@ export class ProformasService {
             tap(() => this.refreshPendingCount())
         );
     }
+
     downloadPdf(id: string, code: string): void {
         this.http.get(`${this.API_URL}/${id}/pdf`, { responseType: 'blob' }).subscribe({
             next: (blob: Blob) => {
@@ -89,8 +97,7 @@ export class ProformasService {
             },
             error: (err) => {
                 console.error('Error descargando PDF:', err);
-                alert('Error al descargar el comprobante en PDF.');
             }
         });
-    } 
+    }
 }

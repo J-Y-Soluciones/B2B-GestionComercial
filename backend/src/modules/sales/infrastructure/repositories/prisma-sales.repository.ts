@@ -19,32 +19,66 @@ export class PrismaSalesRepository implements ISalesRepository {
         return this.prisma.$transaction(async (tx) => {
             // 1. Validar y descontar stock por proveedor
             for (const item of data.items) {
-                const stockRecord = await tx.supplierProductStock.findUnique({
-                    where: {
-                        productId_supplierId: {
-                            productId: item.productId,
-                            supplierId: item.supplierId,
-                        },
-                    },
-                    include: { product: true },
-                });
+                const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.supplierId);
 
-                if (!stockRecord) {
-                    throw new BadRequestException('Sin existencias configuradas para el proveedor seleccionado.');
+                let stockRecord = null;
+
+                // 1.1 Intentar con el proveedor explícito si tiene stock suficiente
+                if (isUUID) {
+                    const candidate = await tx.supplierProductStock.findUnique({
+                        where: {
+                            productId_supplierId: {
+                                productId: item.productId,
+                                supplierId: item.supplierId,
+                            },
+                        },
+                        include: { product: true },
+                    });
+
+                    if (candidate && candidate.stock >= item.quantity) {
+                        stockRecord = candidate;
+                    }
                 }
 
-                if (stockRecord.stock < item.quantity) {
+                // 1.2 Fallback: si no vino UUID o el proveedor asignado no tiene stock suficiente,
+                // buscar el primer proveedor que sí cubra la cantidad requerida
+                if (!stockRecord) {
+                    stockRecord = await tx.supplierProductStock.findFirst({
+                        where: {
+                            productId: item.productId,
+                            stock: { gte: item.quantity },
+                        },
+                        include: { product: true },
+                        orderBy: { stock: 'desc' },
+                    });
+                }
+
+                // 1.3 Si ningún proveedor individual cubre la cantidad, abortar para evitar stock negativo
+                if (!stockRecord) {
+                    const anyStock = await tx.supplierProductStock.findFirst({
+                        where: { productId: item.productId },
+                        include: { product: true },
+                        orderBy: { stock: 'desc' },
+                    });
+
+                    if (!anyStock) {
+                        throw new BadRequestException('El repuesto no tiene existencias ni proveedores registrados en Kardex.');
+                    }
+
                     throw new BadRequestException(
-                        `Stock insuficiente para "${stockRecord.product.name}". Disponible: ${stockRecord.stock}, Solicitado: ${item.quantity}`
+                        `Stock insuficiente para "${anyStock.product.name}". Disponible en mayor lote: ${anyStock.stock} u., Solicitado: ${item.quantity} u.`
                     );
                 }
 
+                // Asignar el supplierId real con existencias confirmadas
+                item.supplierId = stockRecord.supplierId;
+                item.costPrice = Number(stockRecord.costPrice);
+
+                // Descontar inventario de forma segura
                 await tx.supplierProductStock.update({
                     where: { id: stockRecord.id },
                     data: { stock: { decrement: item.quantity } },
                 });
-
-                item.costPrice = Number(stockRecord.costPrice);
             }
 
             // 2. Crear registro de venta
@@ -81,7 +115,7 @@ export class PrismaSalesRepository implements ISalesRepository {
                 },
             });
 
-            // 3. Crear factura/boleta
+            // 3. Crear comprobante (Factura / Boleta / Nota de Venta)
             await tx.invoice.create({
                 data: {
                     saleId: sale.id,
@@ -149,6 +183,64 @@ export class PrismaSalesRepository implements ISalesRepository {
                 payments: true,
                 invoice: true,
             },
+        });
+    }
+
+    async cancelSale(saleId: string, cancelledById: string, reason: string): Promise<any> {
+        return this.prisma.$transaction(async (tx) => {
+            const sale = await tx.sale.findUnique({
+                where: { id: saleId },
+                include: { details: true, invoice: true },
+            });
+
+            if (!sale) throw new NotFoundException('Venta no encontrada.');
+
+            if (sale.notes?.includes('[ANULADA]')) {
+                throw new BadRequestException('Esta venta ya se encuentra anulada.');
+            }
+
+            // 1. Reintegrar stock al inventario por proveedor
+            for (const item of sale.details) {
+                if (item.supplierId) {
+                    await tx.supplierProductStock.updateMany({
+                        where: {
+                            productId: item.productId,
+                            supplierId: item.supplierId,
+                        },
+                        data: { stock: { increment: item.quantity } },
+                    });
+                }
+            }
+
+            // 2. Anular comprobante
+            if (sale.invoice) {
+                await tx.invoice.update({
+                    where: { id: sale.invoice.id },
+                    data: { status: 'ANULLED' as any },
+                });
+            }
+
+            // 3. Auditoría en notas
+            const auditNote = `[ANULADA] Motivo: ${reason} | Autorizado por: ${cancelledById} (${new Date().toISOString()})`;
+            const updatedNotes = sale.notes ? `${sale.notes} | ${auditNote}` : auditNote;
+
+            return tx.sale.update({
+                where: { id: saleId },
+                data: { notes: updatedNotes },
+                include: {
+                    customer: true,
+                    invoice: true,
+                    payments: true,
+                    details: { include: { product: true } },
+                },
+            });
+        });
+    }
+
+    async findCustomerById(id: string) {
+        return this.prisma.customer.findUnique({
+            where: { id },
+            select: { id: true, documentNumber: true, name: true },
         });
     }
 }

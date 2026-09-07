@@ -33,6 +33,9 @@ export class CustomerService {
 
   async search(query: string, limit = 10): Promise<CustomerEntity[]> {
     const cleanedQuery = (query || '').trim();
+    if (!cleanedQuery) {
+      return [];
+    }
     return this.customerRepository.search(cleanedQuery, limit);
   }
 

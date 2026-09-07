@@ -200,11 +200,16 @@ export class LoginComponent {
 
     const { email, password } = this.loginForm.getRawValue();
 
-    // src/app/features/auth/login/login.component.ts (dentro de onSubmit)
     this.authService.login({ email: email!, password: password! }).subscribe({
       next: () => {
         this.isLoading.set(false);
-        this.router.navigate(['/approvals']); // <-- Redirigir a la ruta que sí está configurada
+        const role = this.authService.currentUser()?.role;
+
+        if (role === 'WAREHOUSE') {
+          this.router.navigate(['/catalog']);
+        } else {
+          this.router.navigate(['/proformas/create']);
+        }
       },
       error: (err) => {
         this.isLoading.set(false);

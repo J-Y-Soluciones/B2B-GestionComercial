@@ -7,7 +7,12 @@ const prisma = new PrismaClient();
 async function main(): Promise<void> {
     console.log('Iniciando seeding con RBAC dinámico, inventario multi-proveedor y proformas de prueba...');
 
-    // 1. Limpieza en orden estricto de claves foráneas
+    // 1. Limpieza en orden estricto de dependencias foráneas
+    await prisma.payment.deleteMany();
+    await prisma.invoice.deleteMany();
+    await prisma.saleDetail.deleteMany();
+    await prisma.sale.deleteMany();
+
     await prisma.passwordResetToken.deleteMany();
     await prisma.profileModule.deleteMany();
     await prisma.proformaStatusLog.deleteMany();
@@ -94,15 +99,63 @@ async function main(): Promise<void> {
         data: { email: 'almacen@repuestos.com', passwordHash: defaultPassword, role: Role.WAREHOUSE, profileId: profileWarehouse.id, isActive: true },
     });
 
-    // 6. Clientes Base
-    const customerNatural = await prisma.customer.create({
-        data: { type: CustomerType.NATURAL, documentNumber: '71234567', name: 'Juan Pérez', email: 'juan.perez@empresa.com', phone: '987654321', address: 'Jr. Huancavelica 550, Lima' },
-    });
-    const customerBusiness = await prisma.customer.create({
-        data: { type: CustomerType.BUSINESS, documentNumber: '20123456789', name: 'Transportes del Norte SAC', email: 'logistica@transportesnorte.com', phone: '014445555', address: 'Av. Los Motores 123, Lima' },
+    // 6. Clientes Base (Incluyendo Comodín para Mostrador / Clientes Varios)
+    const customerComodin = await prisma.customer.create({
+        data: {
+            type: CustomerType.NATURAL,
+            documentNumber: '00000000',
+            name: 'CLIENTES VARIOS (MOSTRADOR)',
+            email: 'mostrador@repuestos.com',
+            phone: '000000000',
+            address: 'Venta Directa de Mostrador',
+        },
     });
 
-    // 7. Proveedores Base (3 proveedores mayoristas para soportar inventario multi-proveedor)
+    const customerNatural = await prisma.customer.create({
+        data: {
+            type: CustomerType.NATURAL,
+            documentNumber: '71234567',
+            name: 'Juan Pérez',
+            email: 'juan.perez@empresa.com',
+            phone: '987654321',
+            address: 'Jr. Huancavelica 550, Lima',
+        },
+    });
+
+    const customerNatural2 = await prisma.customer.create({
+        data: {
+            type: CustomerType.NATURAL,
+            documentNumber: '45891234',
+            name: 'Carlos Mendoza Ramos',
+            email: 'mendoza.mecanica@gmail.com',
+            phone: '971234567',
+            address: 'Av. Nicolás Ayllón 1420, Ate',
+        },
+    });
+
+    const customerBusiness = await prisma.customer.create({
+        data: {
+            type: CustomerType.BUSINESS,
+            documentNumber: '20123456789',
+            name: 'Transportes del Norte SAC',
+            email: 'logistica@transportesnorte.com',
+            phone: '014445555',
+            address: 'Av. Los Motores 123, Lima',
+        },
+    });
+
+    const customerBusiness2 = await prisma.customer.create({
+        data: {
+            type: CustomerType.BUSINESS,
+            documentNumber: '20556677881',
+            name: 'Automotriz del Centro EIRL',
+            email: 'compras@autocentro.pe',
+            phone: '016543210',
+            address: 'Av. Iquitos 890, La Victoria',
+        },
+    });
+
+    // 7. Proveedores Base
     const supplierBosch = await prisma.supplier.create({
         data: {
             ruc: '20501234561',
@@ -154,24 +207,9 @@ async function main(): Promise<void> {
             },
             stocks: {
                 create: [
-                    {
-                        supplierId: supplierBosch.id,
-                        supplierSku: 'BOSCH-BP-994',
-                        stock: 14,
-                        costPrice: new Prisma.Decimal(68.5),
-                    },
-                    {
-                        supplierId: supplierImports.id,
-                        supplierSku: 'PAC-PF-BOSCH',
-                        stock: 8,
-                        costPrice: new Prisma.Decimal(72.0),
-                    },
-                    {
-                        supplierId: supplierMayorista.id,
-                        supplierSku: 'MAY-7701-F',
-                        stock: 5,
-                        costPrice: new Prisma.Decimal(70.0),
-                    },
+                    { supplierId: supplierBosch.id, supplierSku: 'BOSCH-BP-994', stock: 14, costPrice: new Prisma.Decimal(68.5) },
+                    { supplierId: supplierImports.id, supplierSku: 'PAC-PF-BOSCH', stock: 8, costPrice: new Prisma.Decimal(72.0) },
+                    { supplierId: supplierMayorista.id, supplierSku: 'MAY-7701-F', stock: 5, costPrice: new Prisma.Decimal(70.0) },
                 ],
             },
         },
@@ -194,18 +232,8 @@ async function main(): Promise<void> {
             },
             stocks: {
                 create: [
-                    {
-                        supplierId: supplierImports.id,
-                        supplierSku: 'FRAM-PH-3593A',
-                        stock: 25,
-                        costPrice: new Prisma.Decimal(16.0),
-                    },
-                    {
-                        supplierId: supplierMayorista.id,
-                        supplierSku: 'MAY-OIL-02',
-                        stock: 18,
-                        costPrice: new Prisma.Decimal(15.5),
-                    },
+                    { supplierId: supplierImports.id, supplierSku: 'FRAM-PH-3593A', stock: 25, costPrice: new Prisma.Decimal(16.0) },
+                    { supplierId: supplierMayorista.id, supplierSku: 'MAY-OIL-02', stock: 18, costPrice: new Prisma.Decimal(15.5) },
                 ],
             },
         },
@@ -228,24 +256,14 @@ async function main(): Promise<void> {
             },
             stocks: {
                 create: [
-                    {
-                        supplierId: supplierImports.id,
-                        supplierSku: 'NGK-ILZKR7B-11',
-                        stock: 20,
-                        costPrice: new Prisma.Decimal(21.0),
-                    },
-                    {
-                        supplierId: supplierBosch.id,
-                        supplierSku: 'BOSCH-DIST-NGK',
-                        stock: 15,
-                        costPrice: new Prisma.Decimal(22.5),
-                    },
+                    { supplierId: supplierImports.id, supplierSku: 'NGK-ILZKR7B-11', stock: 20, costPrice: new Prisma.Decimal(21.0) },
+                    { supplierId: supplierBosch.id, supplierSku: 'BOSCH-DIST-NGK', stock: 15, costPrice: new Prisma.Decimal(22.5) },
                 ],
             },
         },
     });
 
-    // 9. Proformas de Prueba (PENDING_APPROVAL con Tier 3)
+    // 9. Proformas de Prueba
     const expiresToday = new Date();
     expiresToday.setHours(expiresToday.getHours() + 18);
 
@@ -257,25 +275,13 @@ async function main(): Promise<void> {
             code: 'PROF-2026-0012',
             customerId: customerBusiness.id,
             sellerId: userSeller.id,
-            totalAmount: new Prisma.Decimal(1360.00),
+            totalAmount: new Prisma.Decimal(1310.00), // Corregido: (10*95) + (10*36) = 1310
             status: ProformaStatus.PENDING_APPROVAL,
             expiresAt: expiresToday,
             details: {
                 create: [
-                    {
-                        productId: p1.id,
-                        quantity: 10,
-                        unitPrice: new Prisma.Decimal(95.0),
-                        priceTier: 3,
-                        subtotal: new Prisma.Decimal(950.0),
-                    },
-                    {
-                        productId: p3.id,
-                        quantity: 10,
-                        unitPrice: new Prisma.Decimal(36.0),
-                        priceTier: 3,
-                        subtotal: new Prisma.Decimal(360.0),
-                    },
+                    { productId: p1.id, quantity: 10, unitPrice: new Prisma.Decimal(95.0), priceTier: 3, subtotal: new Prisma.Decimal(950.0) },
+                    { productId: p3.id, quantity: 10, unitPrice: new Prisma.Decimal(36.0), priceTier: 3, subtotal: new Prisma.Decimal(360.0) },
                 ],
             },
             statusLogs: {
@@ -298,13 +304,7 @@ async function main(): Promise<void> {
             expiresAt: expiresTomorrow,
             details: {
                 create: [
-                    {
-                        productId: p1.id,
-                        quantity: 8,
-                        unitPrice: new Prisma.Decimal(95.0),
-                        priceTier: 3,
-                        subtotal: new Prisma.Decimal(760.0),
-                    },
+                    { productId: p1.id, quantity: 8, unitPrice: new Prisma.Decimal(95.0), priceTier: 3, subtotal: new Prisma.Decimal(760.0) },
                 ],
             },
             statusLogs: {
@@ -317,10 +317,28 @@ async function main(): Promise<void> {
         },
     });
 
+    // Proforma 3: Aprobada y lista para caja directa con Cliente Comodín
+    const proforma3 = await prisma.proforma.create({
+        data: {
+            code: 'PROF-2026-0018',
+            customerId: customerComodin.id,
+            sellerId: userSeller.id,
+            totalAmount: new Prisma.Decimal(190.00),
+            status: ProformaStatus.APPROVED,
+            expiresAt: expiresTomorrow,
+            details: {
+                create: [
+                    { productId: p1.id, quantity: 1, unitPrice: new Prisma.Decimal(120.0), priceTier: 1, subtotal: new Prisma.Decimal(120.0) },
+                    { productId: p2.id, quantity: 2, unitPrice: new Prisma.Decimal(35.0), priceTier: 1, subtotal: new Prisma.Decimal(70.0) },
+                ],
+            },
+        },
+    });
+
     console.log(`Seeding completado con éxito:`);
-    console.log(`- 3 Proveedores creados`);
-    console.log(`- 3 Productos configurados con stock multi-proveedor`);
-    console.log(`- 2 Proformas pendientes creadas: ${proforma1.code}, ${proforma2.code}`);
+    console.log(`- Cliente comodín registrado: ${customerComodin.name} (${customerComodin.documentNumber})`);
+    console.log(`- 3 Proveedores y 3 Repuestos multi-stock creados`);
+    console.log(`- 3 Proformas creadas: ${proforma1.code}, ${proforma2.code}, ${proforma3.code}`);
 }
 
 main()

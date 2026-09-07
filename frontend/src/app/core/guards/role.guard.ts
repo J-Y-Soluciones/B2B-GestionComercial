@@ -1,3 +1,4 @@
+// src/app/core/guards/role.guard.ts
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
@@ -13,7 +14,12 @@ export const roleGuard: CanActivateFn = (route) => {
         return true;
     }
 
-    // Si es Vendedor u otro rol no autorizado, se le redirige al cotizador
-    router.navigate(['/proformas/create']);
+    // Redirección segura según el rol para evitar bucles
+    if (user?.role === 'WAREHOUSE') {
+        router.navigate(['/catalog']);
+    } else {
+        router.navigate(['/proformas/create']);
+    }
+
     return false;
 };

@@ -1,3 +1,4 @@
+//src/app/core/services/toast.service.ts
 import { Injectable, signal } from '@angular/core';
 
 export interface ToastMessage {

@@ -2,6 +2,8 @@ import { Routes } from '@angular/router';
 import { AdminLayoutComponent } from './layout/admin-layout/admin-layout.component';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
+import { AuthService } from './core/services/auth.service';
+import { inject } from '@angular/core';
 
 export const routes: Routes = [
     {
@@ -26,6 +28,8 @@ export const routes: Routes = [
         children: [
             {
                 path: 'proformas',
+                canActivate: [roleGuard],
+                data: { roles: ['ADMIN', 'MANAGER', 'SELLER'] },
                 children: [
                     {
                         path: '',
@@ -38,6 +42,33 @@ export const routes: Routes = [
                         title: 'Cotizador Rápido F2 | Sistema de Repuestos'
                     }
                 ]
+            },
+            {
+                path: 'sales',
+                children: [
+                    {
+                        path: '',
+                        loadComponent: () => import('./features/sales/sales-list.component').then(m => m.SalesListComponent),
+                        title: 'Historial de Ventas & Auditoría | Sistema de Repuestos'
+                    },
+                    {
+                        path: 'checkout',
+                        loadComponent: () => import('./features/checkout/checkout.component').then(m => m.CheckoutComponent),
+                        title: 'Checkout & Emisión Mostrador | Sistema de Repuestos'
+                    },
+                    {
+                        path: 'checkout/:proformaId',
+                        loadComponent: () => import('./features/checkout/checkout.component').then(m => m.CheckoutComponent),
+                        title: 'Checkout Proforma | Sistema de Repuestos'
+                    }
+                ]
+            },
+            {
+                path: 'promotions',
+                canActivate: [roleGuard],
+                data: { roles: ['ADMIN', 'MANAGER'] },
+                loadComponent: () => import('./features/promotions/promotions-list.component').then(m => m.PromotionsListComponent),
+                title: 'Promociones & Descuentos Especiales | Sistema de Repuestos'
             },
             {
                 path: 'catalog',
@@ -65,8 +96,17 @@ export const routes: Routes = [
             },
             {
                 path: '',
-                redirectTo: 'proformas/create',
-                pathMatch: 'full'
+                pathMatch: 'full',
+                redirectTo: () => {
+                    const auth = inject(AuthService);
+                    const role = auth.currentUser()?.role;
+
+                    if (role === 'WAREHOUSE') {
+                        return 'catalog';
+                    }
+
+                    return 'proformas/create';
+                }
             }
         ]
     },

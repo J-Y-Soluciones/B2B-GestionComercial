@@ -1,3 +1,4 @@
+//src/app/features/customers/components/customer-modal.component.ts
 import { Component, input, output, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -30,8 +31,8 @@ import type { Customer, CreateCustomerPayload } from '../../../core/models/custo
               <label class="block font-semibold text-slate-700 mb-1">Tipo Fiscal</label>
               <select [(ngModel)]="formType" name="type" (change)="onTypeChange()"
                 class="w-full border border-slate-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
-                <option value="NATURAL">Persona Natural (DNI)</option>
-                <option value="BUSINESS">Persona Jurídica (RUC)</option>
+                <option value="NATURAL">DNI (8 dígitos) - Boleta Electrónica</option>
+                <option value="BUSINESS">RUC (11 dígitos) - Factura / Boleta</option>
               </select>
             </div>
             <div>
@@ -132,14 +133,20 @@ export class CustomerModalComponent {
     this.errorMessage.set(null);
     const doc = this.formDoc.trim();
 
-    if (this.formType === 'NATURAL' && doc.length !== 8) {
-      this.errorMessage.set('El DNI debe tener exactamente 8 dígitos.');
-      return;
+    if (this.formType === 'NATURAL') {
+      if (doc.length !== 8) {
+        this.errorMessage.set('El DNI debe tener exactamente 8 dígitos.');
+        return;
+      }
     }
-    if (this.formType === 'BUSINESS' && doc.length !== 11) {
-      this.errorMessage.set('El RUC debe tener exactamente 11 dígitos.');
-      return;
+
+    if (this.formType === 'BUSINESS') {
+      if (doc.length !== 11) {
+        this.errorMessage.set('El RUC debe tener exactamente 11 dígitos.');
+        return;
+      }
     }
+
     if (!this.formName.trim()) {
       this.errorMessage.set('El nombre o razón social es obligatorio.');
       return;

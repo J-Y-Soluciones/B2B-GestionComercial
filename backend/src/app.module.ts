@@ -8,7 +8,8 @@ import { ProformasModule } from './modules/proformas/proformas.module.js';
 import { CustomerModule } from './modules/customers/customers.module.js';
 import { ProductsModule } from './modules/products/products.module.js';
 import { SuppliersModule } from './modules/suppliers/suppliers.module.js';
-import { UsersModule } from './modules/users/users.module.js'; 
+import { UsersModule } from './modules/users/users.module.js';
+import { SalesModule } from './modules/sales/sales.module.js'; // <-- Importar aquí
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { UsersModule } from './modules/users/users.module.js';
     ProductsModule,
     SuppliersModule,
     UsersModule,
+    SalesModule,
   ],
 })
 export class AppModule { }

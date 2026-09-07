@@ -1,12 +1,13 @@
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import type { Proforma } from '../../../core/models/proforma.model';
 
 @Component({
-    selector: 'app-proformas-table',
-    standalone: true,
-    imports: [CommonModule],
-    template: `
+  selector: 'app-proformas-table',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
     <div class="overflow-x-auto">
       <table class="w-full text-left text-xs border-collapse">
         <thead>
@@ -67,8 +68,10 @@ import type { Proforma } from '../../../core/models/proforma.model';
                     📥
                   </button>
                   @if (prof.status === 'APPROVED' || prof.status === 'PENDING') {
-                    <button type="button" (click)="facturar.emit(prof)"
-                      class="px-3 py-1 rounded-lg bg-emerald-900 hover:bg-emerald-950 text-white font-bold text-xs flex items-center gap-1 shadow-xs cursor-pointer">
+                    <button 
+                      type="button" 
+                      (click)="goToCheckout(prof.id)"
+                      class="px-2.5 py-1 text-xs font-bold text-white bg-emerald-800 hover:bg-emerald-900 rounded-lg flex items-center gap-1 shadow-xs transition-all cursor-pointer">
                       <span>⚡ Facturar</span>
                     </button>
                   }
@@ -82,22 +85,28 @@ import type { Proforma } from '../../../core/models/proforma.model';
   `
 })
 export class ProformasTableComponent {
-    proformas = input.required<Proforma[]>();
-    downloadingId = input<string | null>(null);
+  private readonly router = inject(Router);
 
-    downloadPdf = output<Proforma>();
-    facturar = output<Proforma>();
+  proformas = input.required<Proforma[]>();
+  downloadingId = input<string | null>(null);
 
-    getItemsSummary(prof: Proforma): string {
-        return (prof.details || []).map((d: any) => d.product?.name || 'Repuesto').join(', ');
+  downloadPdf = output<Proforma>();
+  facturar = output<Proforma>();
+
+  getItemsSummary(prof: Proforma): string {
+    return (prof.details || []).map((d: any) => d.product?.name || 'Repuesto').join(', ');
+  }
+
+  goToCheckout(proformaId: string): void {
+    this.router.navigate(['/sales/checkout', proformaId]);
+  }
+
+  getStatusClass(status: string): string {
+    switch (status) {
+      case 'APPROVED': return 'bg-emerald-50 text-emerald-800 border-emerald-200';
+      case 'PENDING_APPROVAL': return 'bg-amber-50 text-amber-900 border-amber-200';
+      case 'REJECTED': return 'bg-rose-50 text-rose-800 border-rose-200';
+      default: return 'bg-slate-50 text-slate-700 border-slate-200';
     }
-
-    getStatusClass(status: string): string {
-        switch (status) {
-            case 'APPROVED': return 'bg-emerald-50 text-emerald-800 border-emerald-200';
-            case 'PENDING_APPROVAL': return 'bg-amber-50 text-amber-900 border-amber-200';
-            case 'REJECTED': return 'bg-rose-50 text-rose-800 border-rose-200';
-            default: return 'bg-slate-50 text-slate-700 border-slate-200';
-        }
-    }
+  }
 }

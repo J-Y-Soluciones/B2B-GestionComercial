@@ -1,3 +1,4 @@
+//src/app/features/catalog/catalog-list.component.ts
 import { Component, OnInit, HostListener, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ProductsApiService } from '../../core/api/products-api.service';

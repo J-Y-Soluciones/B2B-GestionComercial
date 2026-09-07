@@ -14,6 +14,7 @@ export type ProformaStatus =
 export interface ProformaDetailItem {
     id?: string;
     productId: string;
+    supplierId?: string;
     quantity: number;
     unitPrice: number;
     priceTier: number;
@@ -23,6 +24,7 @@ export interface ProformaDetailItem {
 
 export interface CreateProformaItemPayload {
     productId: string;
+    supplierId?: string;
     quantity: number;
     unitPrice: number;
     priceTier: number;

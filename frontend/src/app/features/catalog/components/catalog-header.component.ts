@@ -2,10 +2,10 @@ import { Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
-    selector: 'app-catalog-header',
-    standalone: true,
-    imports: [CommonModule],
-    template: `
+  selector: 'app-catalog-header',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
       <div>
         <div class="text-[10px] font-mono font-bold tracking-wider text-slate-400 uppercase">
@@ -13,7 +13,7 @@ import { CommonModule } from '@angular/common';
         </div>
         <div class="flex items-center gap-2.5 mt-0.5">
           <h1 class="text-base font-extrabold text-slate-900 tracking-tight">
-            Catálogo Maestro de Repuestos & Stock Multi-Almacén
+           Catálogo Maestro de Repuestos & Existencias Físicas
           </h1>
           <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -47,7 +47,7 @@ import { CommonModule } from '@angular/common';
   `
 })
 export class CatalogHeaderComponent {
-    canManage = input.required<boolean>();
-    refresh = output<void>();
-    create = output<void>();
+  canManage = input.required<boolean>();
+  refresh = output<void>();
+  create = output<void>();
 }

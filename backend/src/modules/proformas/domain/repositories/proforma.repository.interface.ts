@@ -22,6 +22,7 @@ export type ProformaWithDetails = Proforma & {
 
 export interface CreateProformaItemData {
     productId: string;
+    supplierId?: string;
     quantity: number;
     unitPrice: number;
     priceTier: number;

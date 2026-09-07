@@ -21,8 +21,14 @@ export class PrismaProformaRepository implements IProformaRepository {
         },
         details: {
             include: {
-                product: true,
-            },
+                product: {
+                    include: {
+                        stocks: {
+                            include: { supplier: true }
+                        }
+                    }
+                }
+            }
         },
         statusLogs: {
             include: {
@@ -71,6 +77,7 @@ export class PrismaProformaRepository implements IProformaRepository {
                     details: {
                         create: data.details.map((d) => ({
                             productId: d.productId,
+                            supplierId: d.supplierId,
                             quantity: d.quantity,
                             unitPrice: d.unitPrice,
                             priceTier: d.priceTier,

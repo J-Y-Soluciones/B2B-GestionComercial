@@ -23,4 +23,10 @@ export class SalesController {
     findOne(@Param('id') id: string) {
         return this.salesService.getSaleById(id);
     }
+
+    @Post(':id/cancel')
+    cancel(@Param('id') id: string, @Body('reason') reason: string, @Req() req: any) {
+        const userId = req.user?.id || req.user?.sub;
+        return this.salesService.cancelSale(id, userId, reason || 'Anulación por mostrador');
+    }
 }

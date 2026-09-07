@@ -1,3 +1,4 @@
+// backend/src/modules/sales/application/services/sales.service.ts
 import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import { SALES_REPOSITORY } from '../../domain/repositories/sales.repository.interface.js';
 import type { ISalesRepository } from '../../domain/repositories/sales.repository.interface.js';
@@ -30,15 +31,37 @@ export class SalesService {
             };
         });
 
-        const subtotal = Number((total / 1.18).toFixed(2));
-        const igvAmount = Number((total - subtotal).toFixed(2));
-
+        // 1. Validación de cuadre de caja
         const totalPayments = dto.payments.reduce((acc, p) => acc + Number(p.amount), 0);
         if (Math.abs(totalPayments - total) > 0.05) {
             throw new BadRequestException(
                 `El pago ingresado (S/ ${totalPayments.toFixed(2)}) no coincide con el total de la venta (S/ ${total.toFixed(2)}).`
             );
         }
+
+        // 2. Validación Normativa SUNAT (S/ 700.00 & RUC obligatorio)
+        const customer = await this.salesRepo.findCustomerById?.(dto.customerId);
+        const docNumber = customer?.documentNumber?.trim() || '';
+        const isComodin = !docNumber || docNumber === '00000000' || docNumber === '-';
+
+        if (dto.invoiceType === 'FACTURA') {
+            if (isComodin || docNumber.length !== 11) {
+                throw new BadRequestException(
+                    'Para emitir Factura electrónica (F001) es obligatorio asignar un cliente con RUC válido de 11 dígitos.'
+                );
+            }
+        }
+
+        if (dto.invoiceType === 'BOLETA' && total >= 700) {
+            if (isComodin || docNumber.length < 8) {
+                throw new BadRequestException(
+                    `Por disposición de SUNAT, las Boletas por montos mayores o iguales a S/ 700.00 requieren identificar al cliente con DNI o Carnet de Extranjería.`
+                );
+            }
+        }
+
+        const subtotal = Number((total / 1.18).toFixed(2));
+        const igvAmount = Number((total - subtotal).toFixed(2));
 
         const totalCount = await this.salesRepo.countTotalSales();
         const code = `VNT-${new Date().getFullYear()}-${String(totalCount + 1).padStart(5, '0')}`;
@@ -74,5 +97,9 @@ export class SalesService {
 
     async getSaleById(id: string) {
         return this.salesRepo.findSaleById(id);
+    }
+
+    async cancelSale(saleId: string, userId: string, reason: string) {
+        return this.salesRepo.cancelSale(saleId, userId, reason);
     }
 }

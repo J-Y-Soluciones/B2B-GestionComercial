@@ -13,12 +13,12 @@ import { ToastService } from '../../core/services/toast.service';
   imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
   template: `
     <div class="min-h-screen bg-slate-100/70 flex flex-col md:flex-row text-slate-800 font-sans antialiased">
-      <!-- SIDEBAR BLANCO CORPORATIVO -->
+      <!-- SIDEBAR CORPORATIVO -->
       <aside 
         class="bg-white text-slate-700 flex-shrink-0 transition-all duration-300 flex flex-col justify-between border-r border-slate-200 z-20 select-none"
         [ngClass]="sidebarExpanded() ? 'w-64' : 'w-20'">
         
-        <div>
+        <div class="overflow-y-auto">
           <!-- Header de Marca -->
           <div class="h-16 flex items-center justify-between px-4 border-b border-slate-100">
             @if (sidebarExpanded()) {
@@ -43,7 +43,7 @@ import { ToastService } from '../../core/services/toast.service';
             }
             <button 
               (click)="toggleSidebar()" 
-              class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors hidden md:block"
+              class="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition-colors hidden md:block cursor-pointer"
               title="Colapsar menú">
               <svg class="w-4 h-4 transition-transform duration-200" [class.rotate-180]="!sidebarExpanded()" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
@@ -51,129 +51,217 @@ import { ToastService } from '../../core/services/toast.service';
             </button>
           </div>
 
-          <!-- Módulo Context Badge -->
-          @if (sidebarExpanded()) {
-            <div class="px-4 pt-3.5 pb-2">
-              <div class="bg-emerald-50/60 border border-emerald-100/90 rounded-lg px-3 py-2 text-[10px] font-bold text-emerald-900 tracking-wider flex items-center gap-2 uppercase">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                <span>Módulo Comercial</span>
-              </div>
-            </div>
-          }
-
-          <!-- Navegación Dinámica -->
-          <nav class="p-3 space-y-1">
-            <!-- Aprobaciones Tier 3 (Exclusivo para ADMIN y MANAGER) -->
-            @if (canViewApprovals()) {
-              <a 
-                routerLink="/approvals" 
-                routerLinkActive="!bg-[#064e3b] !text-white shadow-sm active-item"
-                class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100/80 transition-all text-xs font-medium group">
-                <div class="flex items-center gap-3 min-w-0">
-                  <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M9 11l3 3L22 4"></path>
-                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-                  </svg>
-                  @if (sidebarExpanded()) {
-                    <span class="truncate">Aprobaciones (T3)</span>
-                  }
-                </div>
-                @if (sidebarExpanded() && pendingApprovalsCount() > 0) {
-                  <span class="text-[10px] font-bold bg-[#d97706] text-white px-2 py-0.5 rounded-full whitespace-nowrap shadow-xs">
-                    {{ pendingApprovalsCount() }} pendientes
+          <!-- NAVEGACIÓN AGRUPADA -->
+          <nav class="p-3 space-y-5">
+            <!-- SECCIÓN 1: OPERACIONES & CAJA -->
+            @if (hasProformasAccess() || canAccessSales()) {
+              <div>
+                @if (sidebarExpanded()) {
+                  <span class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+                    Ventas & Mostrador
                   </span>
                 }
-              </a>
-            }
+                <div class="space-y-1">
+                  <!-- Cotizador Rápido F2 -->
+                  @if (hasProformasAccess()) {
+                    <a 
+                      routerLink="/proformas/create" 
+                      routerLinkActive="!bg-[#064e3b] !text-white shadow-sm active-item"
+                      class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 transition-all text-xs font-medium group">
+                      <div class="flex items-center gap-3 min-w-0">
+                        <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        @if (sidebarExpanded()) {
+                          <span class="truncate">Cotizador Rápido</span>
+                        }
+                      </div>
+                      @if (sidebarExpanded()) {
+                        <span class="text-[9px] font-semibold text-slate-400 bg-slate-100 group-[.active-item]:bg-emerald-900 group-[.active-item]:text-emerald-200 px-1 py-0.5 rounded border border-slate-200 group-[.active-item]:border-emerald-800">F2</span>
+                      }
+                    </a>
+                  }
 
-            <!-- Bloque Proformas (Cotizador F2 + Historial Central) -->
-            @if (hasProformasAccess()) {
-              <!-- 1. Cotizador Rápido F2 -->
-              <a 
-                routerLink="/proformas/create" 
-                routerLinkActive="!bg-[#064e3b] !text-white shadow-sm active-item"
-                class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 transition-all text-xs font-medium group">
-                <div class="flex items-center gap-3 min-w-0">
-                  <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                  </svg>
-                  @if (sidebarExpanded()) {
-                    <span class="truncate">Cotizador Rápido</span>
+                  <!-- Caja & Checkout F8 -->
+                  @if (canAccessSales()) {
+                    <a 
+                      routerLink="/sales/checkout" 
+                      routerLinkActive="!bg-[#064e3b] !text-white shadow-sm active-item"
+                      class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 transition-all text-xs font-medium group">
+                      <div class="flex items-center gap-3 min-w-0">
+                        <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                        @if (sidebarExpanded()) {
+                          <span class="truncate">Caja & Checkout</span>
+                        }
+                      </div>
+                      @if (sidebarExpanded()) {
+                        <span class="text-[9px] font-semibold text-slate-400 bg-slate-100 group-[.active-item]:bg-emerald-900 group-[.active-item]:text-emerald-200 px-1 py-0.5 rounded border border-slate-200 group-[.active-item]:border-emerald-800">F8</span>
+                      }
+                    </a>
+                  }
+
+                  <!-- Historial de Proformas -->
+                  @if (hasProformasAccess()) {
+                    <a 
+                      routerLink="/proformas" 
+                      [routerLinkActiveOptions]="{ exact: true }"
+                      routerLinkActive="!bg-[#064e3b] !text-white shadow-sm active-item"
+                      class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 transition-all text-xs font-medium group">
+                      <div class="flex items-center gap-3 min-w-0">
+                        <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        @if (sidebarExpanded()) {
+                          <span class="truncate">Historial Proformas</span>
+                        }
+                      </div>
+                    </a>
+                  }
+
+                  <!-- Historial de Ventas -->
+                  @if (canAccessSales()) {
+                    <a 
+                      routerLink="/sales" 
+                      [routerLinkActiveOptions]="{ exact: true }"
+                      routerLinkActive="!bg-[#064e3b] !text-white shadow-sm active-item"
+                      class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 transition-all text-xs font-medium group">
+                      <div class="flex items-center gap-3 min-w-0">
+                        <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                          <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+                          <line x1="2" y1="10" x2="22" y2="10"></line>
+                        </svg>
+                        @if (sidebarExpanded()) {
+                          <span class="truncate">Historial de Ventas</span>
+                        }
+                      </div>
+                    </a>
                   }
                 </div>
-                @if (sidebarExpanded()) {
-                  <span class="text-[9px] font-semibold text-slate-400 bg-slate-100 group-[.active-item]:bg-emerald-900 group-[.active-item]:text-emerald-200 px-1 py-0.5 rounded border border-slate-200 group-[.active-item]:border-emerald-800">F2</span>
-                }
-              </a>
-
-              <!-- 2. Historial de Proformas -->
-              <a 
-                routerLink="/proformas" 
-                [routerLinkActiveOptions]="{ exact: true }"
-                routerLinkActive="!bg-[#064e3b] !text-white shadow-sm active-item"
-                class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 transition-all text-xs font-medium group">
-                <div class="flex items-center gap-3 min-w-0">
-                  <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                  </svg>
-                  @if (sidebarExpanded()) {
-                    <span class="truncate">Historial Proformas</span>
-                  }
-                </div>
-              </a>
-            }
-
-            <!-- Resto de módulos autorizados de la sesión -->
-            @for (mod of otherModules(); track mod.moduleCode) {
-              <a 
-                [routerLink]="mod.path" 
-                routerLinkActive="!bg-[#064e3b] !text-white shadow-sm active-item"
-                class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 transition-all text-xs font-medium group">
-                <div class="flex items-center gap-3 min-w-0">
-                  <ng-container [ngSwitch]="mod.moduleCode">
-                    <svg *ngSwitchCase="'CATALOG'" class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
-                    </svg>
-                    <svg *ngSwitchCase="'CUSTOMERS'" class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                    </svg>
-                    <svg *ngSwitchCase="'USERS'" class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                    </svg>
-                    <svg *ngSwitchDefault class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
-                    </svg>
-                  </ng-container>
-
-                  @if (sidebarExpanded()) {
-                    <span class="truncate">{{ mod.name }}</span>
-                  }
-                </div>
-              </a>
-            }
-
-            <div class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 text-xs cursor-default">
-              <svg class="w-4 h-4 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
-              </svg>
-              @if (sidebarExpanded()) {
-                <span class="truncate">Proveedores & OC</span>
-              }
-            </div>
-
-            <div class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 text-xs cursor-not-allowed">
-              <div class="flex items-center gap-3 min-w-0">
-                <svg class="w-4 h-4 text-slate-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                </svg>
-                @if (sidebarExpanded()) {
-                  <span class="truncate">Reportes & Auditoría</span>
-                }
               </div>
+            }
+
+            <!-- SECCIÓN 2: ALMACÉN & CATÁLOGOS -->
+            <div class="pt-2 border-t border-slate-100">
               @if (sidebarExpanded()) {
-                <span class="text-[9px] bg-slate-100 text-slate-400 px-1.5 py-0.2 rounded border border-slate-200">Pronto</span>
+                <span class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+                  Almacén & Maestros
+                </span>
               }
+              <div class="space-y-1">
+                @for (mod of otherModules(); track mod.moduleCode) {
+                  <a 
+                    [routerLink]="mod.path" 
+                    routerLinkActive="!bg-[#064e3b] !text-white shadow-sm active-item"
+                    class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 transition-all text-xs font-medium group">
+                    <div class="flex items-center gap-3 min-w-0">
+                      <ng-container [ngSwitch]="mod.moduleCode">
+                        <svg *ngSwitchCase="'CATALOG'" class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                        </svg>
+                        <svg *ngSwitchCase="'CUSTOMERS'" class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        </svg>
+                        <svg *ngSwitchCase="'USERS'" class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                        <svg *ngSwitchDefault class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path>
+                        </svg>
+                      </ng-container>
+
+                      @if (sidebarExpanded()) {
+                        <span class="truncate">{{ mod.name }}</span>
+                      }
+                    </div>
+                  </a>
+                }
+
+                <!-- Proveedores & OC -->
+                <div class="flex items-center gap-3 px-3 py-2 rounded-lg text-slate-400 text-xs cursor-default">
+                  <svg class="w-4 h-4 text-slate-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                  </svg>
+                  @if (sidebarExpanded()) {
+                    <span class="truncate">Proveedores & OC</span>
+                  }
+                </div>
+              </div>
             </div>
+
+            <!-- SECCIÓN 3: CONTROL & SUPERVISIÓN -->
+            @if (canViewApprovals() || canAccessPromotions()) {
+              <div class="pt-2 border-t border-slate-100">
+                @if (sidebarExpanded()) {
+                  <span class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1.5">
+                    Supervisión B2B
+                  </span>
+                }
+                <div class="space-y-1">
+                  <!-- Aprobaciones Tier 3 -->
+                  @if (canViewApprovals()) {
+                    <a 
+                      routerLink="/approvals" 
+                      routerLinkActive="!bg-[#064e3b] !text-white shadow-sm active-item"
+                      class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100/80 transition-all text-xs font-medium group">
+                      <div class="flex items-center gap-3 min-w-0">
+                        <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M9 11l3 3L22 4"></path>
+                          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                        </svg>
+                        @if (sidebarExpanded()) {
+                          <span class="truncate">Aprobaciones (T3)</span>
+                        }
+                      </div>
+                      @if (sidebarExpanded() && pendingApprovalsCount() > 0) {
+                        <span class="text-[10px] font-bold bg-[#d97706] text-white px-2 py-0.5 rounded-full whitespace-nowrap shadow-xs">
+                          {{ pendingApprovalsCount() }} pendientes
+                        </span>
+                      }
+                    </a>
+                  }
+
+                  <!-- Promociones & Descuentos -->
+                  @if (canAccessPromotions()) {
+                    <a 
+                      routerLink="/promotions" 
+                      routerLinkActive="!bg-[#064e3b] !text-white shadow-sm active-item"
+                      class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 transition-all text-xs font-medium group">
+                      <div class="flex items-center gap-3 min-w-0">
+                        <svg class="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-[.active-item]:text-emerald-300 transition-colors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                          <line x1="19" y1="5" x2="5" y2="19"></line>
+                          <circle cx="6.5" cy="6.5" r="2.5"></circle>
+                          <circle cx="17.5" cy="17.5" r="2.5"></circle>
+                        </svg>
+                        @if (sidebarExpanded()) {
+                          <span class="truncate">Promociones & Descuentos</span>
+                        }
+                      </div>
+                      @if (sidebarExpanded()) {
+                        <span class="text-[9px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded border border-amber-200 font-semibold">v1.2</span>
+                      }
+                    </a>
+                  }
+
+                  <!-- Reportes & Auditoría (Pronto) -->
+                  <div class="flex items-center justify-between px-3 py-2 rounded-lg text-slate-300 text-xs cursor-not-allowed">
+                    <div class="flex items-center gap-3 min-w-0">
+                      <svg class="w-4 h-4 text-slate-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                      </svg>
+                      @if (sidebarExpanded()) {
+                        <span class="truncate">Reportes & Auditoría</span>
+                      }
+                    </div>
+                    @if (sidebarExpanded()) {
+                      <span class="text-[9px] bg-slate-100 text-slate-400 px-1.5 py-0.2 rounded border border-slate-200">Pronto</span>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+
           </nav>
         </div>
 
@@ -289,20 +377,39 @@ export class AdminLayoutComponent implements OnInit {
   public currentUser = this.authService.currentUser;
   public modules = this.authService.authorizedModules;
 
-  // Evalúa permisos para mostrar aprobaciones solo a ADMIN o MANAGER
+  // Aprobaciones: solo ADMIN y MANAGER
   public canViewApprovals = computed(() => {
     const role = this.currentUser()?.role;
     return role === 'ADMIN' || role === 'MANAGER';
   });
 
-  // Comprueba si el usuario tiene asignado el módulo de proformas
+  // Ventas & Checkout Mostrador: ADMIN, MANAGER y SELLER
+  public canAccessSales = computed(() => {
+    const role = this.currentUser()?.role;
+    return role === 'ADMIN' || role === 'MANAGER' || role === 'SELLER';
+  });
+
+  // Promociones & Descuentos: solo ADMIN y MANAGER
+  public canAccessPromotions = computed(() => {
+    const role = this.currentUser()?.role;
+    return role === 'ADMIN' || role === 'MANAGER';
+  });
+
+  // Proformas: según los módulos autorizados
   public hasProformasAccess = computed(() => {
     return this.modules().some((m) => m.moduleCode === 'PROFORMAS');
   });
 
-  // Módulos restantes (excluye proformas y aprobaciones para no duplicarlos en la lista)
+  // Módulos restantes (Catálogo, Clientes, Usuarios, etc.)
   public otherModules = computed(() => {
-    return this.modules().filter((m) => m.moduleCode !== 'PROFORMAS' && m.path !== '/approvals');
+    return this.modules().filter(
+      (m) =>
+        m.moduleCode !== 'PROFORMAS' &&
+        m.moduleCode !== 'SALES' &&
+        m.path !== '/approvals' &&
+        m.path !== '/sales' &&
+        m.path !== '/promotions'
+    );
   });
 
   @HostListener('window:keydown', ['$event'])
@@ -310,11 +417,19 @@ export class AdminLayoutComponent implements OnInit {
     if (event.key === 'F2') {
       event.preventDefault();
       this.router.navigate(['/proformas/create']);
+    } else if (event.key === 'F8') {
+      if (this.canAccessSales()) {
+        event.preventDefault();
+        this.router.navigate(['/sales/checkout']);
+      }
     }
   }
 
   currentRouteTitle(): string {
     const url = this.router.url;
+    if (url.includes('/sales/checkout')) return 'Punto de Venta Mostrador & Checkout (F8)';
+    if (url.includes('/sales')) return 'Historial de Ventas & Trazabilidad Fiscal';
+    if (url.includes('/promotions')) return 'Promociones & Descuentos por Liquidación';
     if (url.includes('/proformas/create')) return 'Cotizador & Emisión de Proformas (F2)';
     if (url.includes('/proformas')) return 'Listado Histórico de Proformas';
     if (url.includes('/catalog')) return 'Catálogo e Inventario';
