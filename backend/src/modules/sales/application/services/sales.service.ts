@@ -60,6 +60,7 @@ export class SalesService {
             }
         }
 
+        total = Number(total.toFixed(2));
         const subtotal = Number((total / 1.18).toFixed(2));
         const igvAmount = Number((total - subtotal).toFixed(2));
 
