@@ -19,12 +19,12 @@ export class ProductsApiService {
         let params = new HttpParams();
 
         if (filters.query?.trim()) params = params.set('query', filters.query.trim());
-        if (filters.category?.trim() && filters.category !== 'Todas') {
+        if (filters.category?.trim() && filters.category !== 'Todas' && filters.category !== 'Todas las Líneas') {
             params = params.set('category', filters.category.trim());
         }
         if (filters.brand?.trim()) params = params.set('brand', filters.brand.trim());
         if (filters.inStock !== undefined) params = params.set('inStock', filters.inStock.toString());
-        // NO enviar limit: el backend lo rechaza vía ValidationPipe
+        if (filters.limit) params = params.set('limit', filters.limit.toString());
 
         return this.http.get<Product[]>(`${this.baseUrl}/search`, { params }).pipe(
             tap({
@@ -45,16 +45,15 @@ export class ProductsApiService {
         return this.http.get<Product>(`${this.baseUrl}/${id}`);
     }
 
-    // Añadir a ProductsApiService si aún no lo tienes:
     setSupplierStock(productId: string, payload: { supplierId: string; supplierSku?: string | null; stock: number; costPrice: number }): Observable<Product> {
-        return this.http.put<Product>(`http://localhost:3000/products/${productId}/stock`, payload);
+        return this.http.put<Product>(`${this.baseUrl}/${productId}/stock`, payload);
     }
 
     create(payload: any): Observable<Product> {
-        return this.http.post<Product>('http://localhost:3000/products', payload);
+        return this.http.post<Product>(this.baseUrl, payload);
     }
 
     update(id: string, payload: any): Observable<Product> {
-        return this.http.patch<Product>(`http://localhost:3000/products/${id}`, payload);
+        return this.http.patch<Product>(`${this.baseUrl}/${id}`, payload);
     }
 }

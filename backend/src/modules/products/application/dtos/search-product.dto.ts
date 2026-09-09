@@ -1,6 +1,6 @@
 // backend/src/modules/products/application/dtos/search-product.dto.ts
-import { IsOptional, IsString, IsBoolean } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { IsOptional, IsString, IsBoolean, IsInt, Min } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
 
 export class SearchProductDto {
     @IsOptional()
@@ -23,4 +23,10 @@ export class SearchProductDto {
     })
     @IsBoolean()
     inStock?: boolean;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt()
+    @Min(1)
+    limit?: number;
 }

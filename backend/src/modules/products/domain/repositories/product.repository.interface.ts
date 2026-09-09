@@ -18,6 +18,7 @@ export interface CreateProductData {
     name: string;
     category: string;
     brand: string;
+    imageUrl?: string | null;
     minStock?: number;
     isActive?: boolean;
     priceTiers: PriceTierInput[];
@@ -29,6 +30,7 @@ export interface UpdateProductData {
     name?: string;
     category?: string;
     brand?: string;
+    imageUrl?: string | null;
     minStock?: number;
     isActive?: boolean;
     priceTiers?: PriceTierInput[];

@@ -1,4 +1,4 @@
-//src/app/features/catalog/catalog-list.component.ts
+// src/app/features/catalog/catalog-list.component.ts
 import { Component, OnInit, HostListener, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ProductsApiService } from '../../core/api/products-api.service';
@@ -26,7 +26,7 @@ import type { Product } from '../../core/models/product.model';
     ProductFormModalComponent
   ],
   template: `
-    <div class="space-y-5">
+    <div class="space-y-4 sm:space-y-5 font-sans">
       <app-catalog-header 
         [canManage]="canManageStock()" 
         (refresh)="loadProducts()" 
@@ -62,6 +62,7 @@ import type { Product } from '../../core/models/product.model';
           (close)="selectedProductForStock.set(null)"
           (save)="handleStockUpdate($event)" />
       }
+
       @if (isProductModalOpen()) {
         <app-product-form-modal
           [product]="selectedProductForEdit()"
@@ -130,9 +131,9 @@ export class CatalogListComponent implements OnInit {
 
   @HostListener('window:keydown', ['$event'])
   handleShortcuts(event: KeyboardEvent): void {
-    if (event.key === 'F4') {
+    if (event.key === 'F4' && this.canManageStock()) {
       event.preventDefault();
-      if (this.canManageStock()) this.openCreateModal();
+      this.openCreateModal();
     } else if (event.key === 'F5') {
       event.preventDefault();
       this.loadProducts();
@@ -147,7 +148,10 @@ export class CatalogListComponent implements OnInit {
   loadProducts(): void {
     this.isLoading.set(true);
     this.productsApi.search({ limit: 100 }).subscribe({
-      next: (res) => { this.products.set(res); this.isLoading.set(false); },
+      next: (res) => {
+        this.products.set(res);
+        this.isLoading.set(false);
+      },
       error: () => this.isLoading.set(false)
     });
   }
@@ -195,11 +199,14 @@ export class CatalogListComponent implements OnInit {
   }
 
   handleProductSave(data: ProductFormData): void {
-    const payload = {
+    const editing = this.selectedProductForEdit();
+
+    const payload: any = {
       internalCode: data.internalCode.trim().toUpperCase(),
       name: data.name.trim(),
       brand: data.brand.trim(),
       category: data.category,
+      imageUrl: data.imageUrl || null,
       minStock: Number(data.minStock),
       priceTiers: [
         { tier: 1, price: Number(data.tier1Price) },
@@ -208,43 +215,36 @@ export class CatalogListComponent implements OnInit {
       ]
     };
 
+    if (!editing && data.initialSupplierId) {
+      payload.stocks = [
+        {
+          supplierId: data.initialSupplierId,
+          supplierSku: data.initialSku?.trim() || undefined,
+          stock: Number(data.initialStock) || 0,
+          costPrice: Number(data.initialCostPrice) || 0
+        }
+      ];
+    }
+
     this.isSavingProduct.set(true);
-    const editing = this.selectedProductForEdit();
-    const request$ = editing ? this.productsApi.update(editing.id, payload) : this.productsApi.create(payload);
+    const request$ = editing
+      ? this.productsApi.update(editing.id, payload)
+      : this.productsApi.create(payload);
 
     request$.subscribe({
-      next: (createdOrUpdatedProduct: Product) => {
-        // Si es creación y el usuario configuró existencias iniciales en el mismo formulario
-        if (!editing && data.initialSupplierId && createdOrUpdatedProduct?.id) {
-          this.productsApi.setSupplierStock(createdOrUpdatedProduct.id, {
-            supplierId: data.initialSupplierId,
-            supplierSku: data.initialSku || null,
-            stock: data.initialStock || 0,
-            costPrice: data.initialCostPrice || 0
-          }).subscribe({
-            next: () => {
-              this.isSavingProduct.set(false);
-              this.toast.show(`Repuesto y stock inicial registrados con éxito.`, 'success');
-              this.closeProductModal();
-              this.loadProducts();
-            },
-            error: () => {
-              this.isSavingProduct.set(false);
-              this.toast.show(`Repuesto creado, pero falló el stock inicial. Edítalo en Lotes.`, 'info');
-              this.closeProductModal();
-              this.loadProducts();
-            }
-          });
-        } else {
-          this.isSavingProduct.set(false);
-          this.toast.show(`Repuesto guardado con éxito.`, 'success');
-          this.closeProductModal();
-          this.loadProducts();
-        }
+      next: () => {
+        this.isSavingProduct.set(false);
+        this.toast.show(
+          editing ? `Repuesto "${data.name}" actualizado.` : `Repuesto "${data.name}" registrado con éxito.`,
+          'success'
+        );
+        this.closeProductModal();
+        this.loadProducts();
       },
       error: (err) => {
         this.isSavingProduct.set(false);
-        this.toast.show(err?.error?.message || 'Error al guardar repuesto.', 'error');
+        const msg = err?.error?.message || 'Error al guardar repuesto.';
+        this.toast.show(Array.isArray(msg) ? msg.join(', ') : msg, 'error');
       }
     });
   }

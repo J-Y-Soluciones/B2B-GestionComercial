@@ -8,6 +8,7 @@ export class ProductEntity {
     name: string;
     category: string;
     brand: string;
+    imageUrl?: string | null;
     minStock: number;
     isActive: boolean;
     totalStock: number;

@@ -51,6 +51,7 @@ export class PrismaProductRepository implements IProductRepository {
             name: raw.name,
             category: raw.category,
             brand: raw.brand,
+            imageUrl: raw.imageUrl,
             minStock: raw.minStock,
             isActive: raw.isActive,
             totalStock,
@@ -139,6 +140,7 @@ export class PrismaProductRepository implements IProductRepository {
                     name: data.name,
                     category: data.category,
                     brand: data.brand,
+                    imageUrl: data.imageUrl ?? null,
                     minStock: data.minStock ?? 5,
                     isActive: data.isActive ?? true,
                     priceTiers: {
@@ -202,6 +204,7 @@ export class PrismaProductRepository implements IProductRepository {
                     ...(data.brand !== undefined && { brand: data.brand }),
                     ...(data.minStock !== undefined && { minStock: data.minStock }),
                     ...(data.isActive !== undefined && { isActive: data.isActive }),
+                    ...(data.imageUrl !== undefined && { imageUrl: data.imageUrl }),
                 },
                 include: {
                     priceTiers: { orderBy: { tier: 'asc' } },

@@ -31,6 +31,7 @@ export interface Product {
     stocks: SupplierStock[];
     createdAt: string;
     updatedAt: string;
+    imageUrl?: string;
 }
 
 export interface ProductSearchFilters {

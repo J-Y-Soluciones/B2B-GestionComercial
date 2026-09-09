@@ -66,6 +66,10 @@ export class CreateProductDto {
     @MaxLength(100)
     brand!: string;
 
+    @IsString()
+    @IsOptional()
+    imageUrl?: string;
+
     @IsInt()
     @Min(0)
     @IsOptional()
