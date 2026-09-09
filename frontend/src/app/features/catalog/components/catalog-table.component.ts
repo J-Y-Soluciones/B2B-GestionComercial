@@ -1,7 +1,13 @@
 // src/app/features/catalog/components/catalog-table.component.ts
-import { Component, input, output } from '@angular/core';
+import { Component, HostListener, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import type { Product } from '../../../core/models/product.model';
+
+export interface PreviewImageState {
+  url: string;
+  name: string;
+  sku: string;
+}
 
 @Component({
   selector: 'app-catalog-table',
@@ -21,9 +27,14 @@ import type { Product } from '../../../core/models/product.model';
           <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs space-y-2.5">
             <div class="flex items-start justify-between gap-2.5">
               <div class="flex items-start gap-2.5 min-w-0">
-                <div class="w-10 h-10 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                <div class="relative group w-10 h-10 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
                   @if (prod.imageUrl) {
                     <img [src]="prod.imageUrl" [alt]="prod.name" class="w-full h-full object-cover" />
+                    <button type="button" (click)="openPreview(prod)"
+                      class="absolute inset-0 bg-slate-900/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-xs font-bold"
+                      title="Ver imagen grande">
+                      👁️
+                    </button>
                   } @else {
                     <span class="text-xs text-slate-300">📦</span>
                   }
@@ -117,9 +128,14 @@ import type { Product } from '../../../core/models/product.model';
 
                   <td class="py-3 px-4">
                     <div class="flex items-center gap-2.5">
-                      <div class="w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                      <div class="relative group w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
                         @if (prod.imageUrl) {
                           <img [src]="prod.imageUrl" [alt]="prod.name" class="w-full h-full object-cover" />
+                          <button type="button" (click)="openPreview(prod)"
+                            class="absolute inset-0 bg-slate-900/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-xs"
+                            title="Ver imagen grande">
+                            👁️
+                          </button>
                         } @else {
                           <span class="text-xs text-slate-300">📦</span>
                         }
@@ -190,6 +206,35 @@ import type { Product } from '../../../core/models/product.model';
           </table>
         </div>
       </div>
+
+      <!-- MODAL LIGHTBOX / VISOR IMAGEN GRANDE -->
+      @if (previewState(); as item) {
+        <div class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in"
+             (click)="closePreview()">
+          <div class="relative bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden"
+               (click)="$event.stopPropagation()">
+            
+            <!-- Barra Superior del Modal -->
+            <div class="p-3 px-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <div class="min-w-0">
+                <span class="font-mono text-[9px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">
+                  {{ item.sku }}
+                </span>
+                <h4 class="text-xs font-bold text-slate-900 truncate mt-0.5">{{ item.name }}</h4>
+              </div>
+              <button type="button" (click)="closePreview()"
+                class="text-slate-400 hover:text-slate-700 font-bold text-lg cursor-pointer px-2 leading-none">
+                &times;
+              </button>
+            </div>
+
+            <!-- Imagen en Alta Definición -->
+            <div class="p-3 bg-slate-100/50 flex items-center justify-center">
+              <img [src]="item.url" [alt]="item.name" class="max-h-[70vh] w-auto object-contain rounded-xl shadow-xs" />
+            </div>
+          </div>
+        </div>
+      }
     </div>
   `
 })
@@ -200,6 +245,26 @@ export class CatalogTableComponent {
 
   openStock = output<Product>();
   openEdit = output<Product>();
+
+  readonly previewState = signal<PreviewImageState | null>(null);
+
+  @HostListener('window:keydown.escape')
+  handleEscape(): void {
+    this.closePreview();
+  }
+
+  openPreview(prod: Product): void {
+    if (!prod.imageUrl) return;
+    this.previewState.set({
+      url: prod.imageUrl,
+      name: prod.name,
+      sku: prod.internalCode
+    });
+  }
+
+  closePreview(): void {
+    this.previewState.set(null);
+  }
 
   getTierPrice(product: Product, tierNumber: number): number {
     const t = product.priceTiers?.find((item) => item.tier === tierNumber);
