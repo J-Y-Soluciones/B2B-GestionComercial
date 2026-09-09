@@ -1,14 +1,16 @@
+//src/app/core/api/customers-api.service.ts
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import type { Customer, CreateCustomerPayload } from '../models/customer.model';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
     providedIn: 'root',
 })
 export class CustomersApiService {
     private readonly http = inject(HttpClient);
-    private readonly baseUrl = 'http://localhost:3000/customers';
+    private readonly baseUrl = `${environment.apiUrl}/customers`;
 
     readonly selectedCustomer = signal<Customer | null>(null);
     readonly isSearching = signal<boolean>(false);

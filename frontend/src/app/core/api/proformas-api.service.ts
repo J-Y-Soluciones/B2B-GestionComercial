@@ -1,6 +1,8 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
+import { environment } from '../../../environments/environment';
+
 import type {
     Proforma,
     CreateProformaPayload,
@@ -11,7 +13,7 @@ import type {
 })
 export class ProformasApiService {
     private readonly http = inject(HttpClient);
-    private readonly baseUrl = 'http://localhost:3000/proformas';
+    private readonly baseUrl = `${environment.apiUrl}/proformas`;
 
     readonly isSubmitting = signal<boolean>(false);
     readonly lastCreatedProforma = signal<Proforma | null>(null);

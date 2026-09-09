@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 export interface ProformaDetailDto {
     id: string;
@@ -43,7 +44,7 @@ export interface ProformaDto {
 @Injectable({ providedIn: 'root' })
 export class ProformasService {
     private readonly http = inject(HttpClient);
-    private readonly API_URL = 'http://localhost:3000/proformas';
+    private readonly API_URL = `${environment.apiUrl}/proformas`;
 
     readonly pendingApprovalsCount = signal<number>(0);
 
