@@ -64,6 +64,7 @@ export class ProductService {
             name: dto.name,
             category: dto.category,
             brand: dto.brand,
+            imageUrl: dto.imageUrl ?? null,
             minStock: dto.minStock ?? 5,
             isActive: dto.isActive ?? true,
             priceTiers: dto.priceTiers,
@@ -88,12 +89,12 @@ export class ProductService {
             ...(dto.name !== undefined && { name: dto.name }),
             ...(dto.category !== undefined && { category: dto.category }),
             ...(dto.brand !== undefined && { brand: dto.brand }),
+            ...(dto.imageUrl !== undefined && { imageUrl: dto.imageUrl }),
             ...(dto.minStock !== undefined && { minStock: dto.minStock }),
             ...(dto.isActive !== undefined && { isActive: dto.isActive }),
             ...(dto.priceTiers !== undefined && { priceTiers: dto.priceTiers }),
         });
     }
-
     async setSupplierStock(id: string, dto: SetSupplierStockDto): Promise<ProductEntity> {
         await this.findById(id);
         return this.productRepository.upsertSupplierStock(id, {
