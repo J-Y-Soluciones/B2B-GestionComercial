@@ -1,0 +1,565 @@
+<!-- frontend/src/app/features/proformas/components/cotizador/cotizador.component.html -->
+<div class="space-y-4 sm:space-y-6 font-sans">
+
+    <!-- ENCABEZADO ESTANDARIZADO VORTEXYOLTI -->
+    <div
+        class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+        <div>
+            <div class="text-[10px] font-mono font-bold tracking-wider text-slate-400 uppercase">
+                COMERCIAL &bull; COTIZADOR RÁPIDO &bull; B2B
+            </div>
+            <div class="flex items-center gap-2 mt-0.5">
+                <h1 class="text-base font-extrabold text-slate-900 tracking-tight">
+                    Cotizador &amp; Emisión de Proformas
+                </h1>
+                <span
+                    class="hidden md:inline-flex bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded font-mono font-bold">
+                    F2
+                </span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">
+                Genera cotizaciones rápidas con selección de proveedor y márgenes protegidos.
+            </p>
+        </div>
+
+        <div class="flex items-center gap-2 self-end sm:self-auto">
+            <span
+                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Entorno de Emisión Operativo
+            </span>
+        </div>
+    </div>
+
+    <!-- WORKSPACE RESPONSIVE -->
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-6 items-start">
+
+        <!-- COLUMNA IZQUIERDA: Flujo Operativo (8 cols en XL) -->
+        <div class="xl:col-span-8 space-y-4 sm:space-y-6 min-w-0">
+
+            <!-- 1. Cuenta & Razón Social -->
+            <section class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-2xs">
+                <div class="flex items-center justify-between mb-3 gap-2">
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-bold flex items-center justify-center font-mono">1</span>
+                        <h2 class="text-sm font-bold text-slate-900">Cuenta &amp; Razón Social</h2>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        @if (!selectedCustomer()) {
+                        <button type="button" (click)="selectCasualCustomer()"
+                            class="px-2.5 py-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg flex items-center gap-1 transition-all cursor-pointer shadow-2xs">
+                            <span>⚡</span> Mostrador / Clientes Varios
+                        </button>
+                        } @else {
+                        <button type="button" (click)="clearCustomer()"
+                            class="text-xs text-emerald-700 hover:text-emerald-800 font-semibold cursor-pointer transition-colors">
+                            Cambiar cliente
+                        </button>
+                        }
+                    </div>
+                </div>
+
+                @if (!selectedCustomer()) {
+                <div class="relative">
+                    <input type="text" [ngModel]="customerQuery()" (ngModelChange)="onCustomerQueryChange($event)"
+                        placeholder="Buscar por DNI (8 dígitos), RUC (11 dígitos) o Razón Social..."
+                        class="w-full text-xs bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 focus:bg-white focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-700 outline-none transition-all" />
+
+                    @if (isSearchingCustomer()) {
+                    <span class="absolute right-3.5 top-2.5 text-[11px] font-mono text-slate-400 animate-pulse">
+                        Buscando...
+                    </span>
+                    }
+
+                    @if (customerSearchResults().length > 0) {
+                    <div
+                        class="absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl z-30 overflow-hidden max-h-60 overflow-y-auto divide-y divide-slate-100">
+                        @for (c of customerSearchResults(); track c.id) {
+                        <button type="button" (click)="selectCustomer(c)"
+                            class="w-full text-left px-4 py-2.5 hover:bg-emerald-50/50 flex items-center justify-between cursor-pointer transition-colors">
+                            <div>
+                                <p class="text-xs font-bold text-slate-900">{{ c.name }}</p>
+                                <p class="text-[10px] text-slate-500 font-mono">{{ c.documentNumber }} &bull; {{ c.type
+                                    }}</p>
+                            </div>
+                            <span class="text-xs text-emerald-700 font-semibold">Seleccionar &rarr;</span>
+                        </button>
+                        }
+                    </div>
+                    }
+                </div>
+                } @else {
+                <div
+                    class="bg-emerald-50/40 border border-emerald-200 rounded-xl p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 class="text-xs sm:text-sm font-bold text-slate-900">{{ selectedCustomer()?.name }}</h3>
+                            <span
+                                class="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-full">
+                                {{ selectedCustomer()?.documentNumber === '00000000' ? 'Comodín Mostrador' :
+                                (selectedCustomer()?.type === 'BUSINESS' ? 'Factura Apta' : 'Boleta Apta') }}
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-600 font-mono mt-0.5">
+                            RUC/DNI: <strong>{{ selectedCustomer()?.documentNumber }}</strong>
+                            @if (selectedCustomer()?.phone && selectedCustomer()?.phone !== '000000000') {
+                            &bull; Tel: {{ selectedCustomer()?.phone }}
+                            }
+                        </p>
+                        @if (selectedCustomer()?.address) {
+                        <p class="text-[11px] text-slate-500 mt-0.5">{{ selectedCustomer()?.address }}</p>
+                        }
+                    </div>
+                    <div
+                        class="text-left sm:text-right shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-emerald-200">
+                        <span
+                            class="text-[10px] font-mono text-slate-500 block uppercase font-semibold">Condición</span>
+                        <span class="text-xs font-bold text-emerald-800">Contado / Mostrador</span>
+                    </div>
+                </div>
+                }
+            </section>
+
+            <!-- 2. Catálogo Express & Consulta de Existencias -->
+            <section class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-2xs space-y-3">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-bold flex items-center justify-center font-mono">2</span>
+                        <h2 class="text-sm font-bold text-slate-900">Catálogo Express &amp; Existencias</h2>
+                    </div>
+                    <span class="text-[10px] font-mono text-slate-400">Activo desde 3 letras</span>
+                </div>
+
+                <!-- SELECTOR CATEGORÍAS RESPONSIVE CON CONTEO -->
+
+                <!-- Móvil (< md): Dropdown nativo con contador -->
+                <div class="block md:hidden">
+                    <div class="relative bg-white rounded-xl border border-slate-200 shadow-2xs">
+                        <label
+                            class="block text-[9px] font-mono font-bold uppercase tracking-wider text-slate-400 px-3 pt-2">
+                            Línea / Categoría Activa
+                        </label>
+                        <select [ngModel]="productCategory()" (ngModelChange)="setCategory($event)"
+                            class="w-full bg-transparent px-3 py-2 text-xs font-bold text-slate-800 outline-none appearance-none cursor-pointer">
+                            @for (cat of categoryOptions(); track cat.name) {
+                            <option [value]="cat.name">
+                                {{ cat.name }} ({{ cat.count }})
+                            </option>
+                            }
+                        </select>
+                        <div class="absolute right-3.5 bottom-3 pointer-events-none text-slate-400 text-xs font-bold">
+                            ▼
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Desktop (>= md): Píldoras con badge de conteo -->
+                <div class="hidden md:flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                    @for (cat of categoryOptions(); track cat.name) {
+                    <button type="button" (click)="setCategory(cat.name)" [class]="productCategory() === cat.name 
+                ? 'bg-emerald-900 text-white font-bold shadow-xs' 
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'"
+                        class="px-3 py-1.5 rounded-full whitespace-nowrap cursor-pointer transition-all flex items-center gap-1.5">
+                        <span>{{ cat.name }}</span>
+                        <span class="text-[10px] font-mono opacity-80"
+                            [class]="productCategory() === cat.name ? 'text-emerald-200' : 'text-slate-400'">
+                            {{ cat.count }}
+                        </span>
+                    </button>
+                    }
+                </div>
+
+                <!-- Input Búsqueda -->
+                <div class="relative">
+                    <input type="text" [ngModel]="productQuery()" (ngModelChange)="onProductQueryChange($event)"
+                        placeholder="Escribe al menos 3 letras (ej. Pas, Bosch, Filtro, NGK)..."
+                        class="w-full text-xs bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-24 py-2.5 focus:bg-white focus:ring-2 focus:ring-emerald-600/20 focus:border-emerald-700 outline-none transition-all" />
+                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor"
+                        viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35">
+                        </path>
+                    </svg>
+                    @if (isSearchingProduct()) {
+                    <span
+                        class="absolute right-3 top-2.5 text-[10px] font-mono text-slate-400 animate-pulse">Buscando...</span>
+                    }
+                </div>
+
+                <!-- Resultados de búsqueda -->
+                <div class="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                    @if (productSearchResults().length === 0 && !isSearchingProduct()) {
+                    <div
+                        class="py-8 text-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-xl">
+                        No se encontraron repuestos con los criterios ingresados.
+                    </div>
+                    }
+
+                    @for (prod of productSearchResults(); track prod.id) {
+                    <div
+                        class="border border-slate-200 rounded-xl p-3.5 hover:border-emerald-500 bg-white flex flex-col md:flex-row md:items-center justify-between gap-3 transition-colors shadow-2xs">
+                        <div class="space-y-1.5 flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span
+                                    class="font-mono text-[10px] font-bold text-emerald-900 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                                    {{ prod.internalCode }}
+                                </span>
+                                <h4 class="text-xs font-bold text-slate-900 truncate">{{ prod.name }}</h4>
+                                <span class="text-[11px] text-slate-500">&bull; {{ prod.brand }}</span>
+                            </div>
+
+                            <!-- Proveedores disponibles para este producto -->
+                            <div class="flex flex-wrap items-center gap-1.5 text-xs pt-0.5">
+                                <span
+                                    class="text-slate-400 text-[10px] font-mono uppercase font-semibold">Proveedor:</span>
+                                @for (s of prod.stocks; track s.id) {
+                                <button type="button" (click)="selectProductSupplier(prod.id, s.id)" [class]="(getActiveStock(prod)?.id === s.id) 
+                                                ? 'bg-emerald-50 border-emerald-500 text-emerald-900 ring-1 ring-emerald-500 font-semibold' 
+                                                : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600'"
+                                    class="inline-flex items-center gap-1.5 border px-2 py-0.5 rounded-lg text-[10px] transition-all cursor-pointer">
+                                    <span
+                                        [class]="(getActiveStock(prod)?.id === s.id) ? 'bg-emerald-600' : 'bg-slate-300'"
+                                        class="w-1.5 h-1.5 rounded-full"></span>
+                                    <span>{{ s.supplierName || 'Distribuidor' }}</span>
+                                    <span
+                                        class="font-mono bg-white px-1 rounded border border-slate-200 text-slate-800 text-[9px] font-bold">
+                                        {{ s.stock }} u.
+                                    </span>
+                                </button>
+                                }
+
+                                <span [class]="prod.totalStock > prod.minStock 
+                                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                                        : 'bg-rose-50 text-rose-800 border-rose-200'"
+                                    class="px-2 py-0.5 rounded-md font-mono font-bold text-[10px] border sm:ml-auto">
+                                    Stock Global: {{ prod.totalStock }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Precio y Botón Agregar -->
+                        <div
+                            class="flex items-center justify-between md:justify-end gap-3 shrink-0 border-t md:border-t-0 pt-2 md:pt-0 border-slate-100">
+                            <div class="text-left md:text-right">
+                                <span class="text-[9px] text-slate-400 block font-mono uppercase">T1 Base</span>
+                                <span class="font-mono text-xs font-bold text-slate-900">
+                                    S/ {{ getTierPrice(prod, 1) | number:'1.2-2' }}
+                                </span>
+                            </div>
+                            <button type="button" (click)="addToCart(prod, getActiveStock(prod))"
+                                class="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white text-xs font-bold rounded-lg flex items-center gap-1 cursor-pointer transition-colors shadow-xs">
+                                <span>+ Agregar</span>
+                            </button>
+                        </div>
+                    </div>
+                    }
+                </div>
+            </section>
+
+            <!-- 3. Matriz de Repuestos en Cotización Actual -->
+            <section class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-2xs space-y-3">
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-800 text-xs font-bold flex items-center justify-center font-mono">3</span>
+                        <h2 class="text-sm font-bold text-slate-900">Repuestos en Cotización Actual</h2>
+                    </div>
+                    @if (cart().length > 0) {
+                    <button type="button" (click)="cart.set([])"
+                        class="text-xs text-rose-600 hover:text-rose-700 cursor-pointer font-medium">
+                        Vaciar tabla
+                    </button>
+                    }
+                </div>
+
+                @if (cart().length === 0) {
+                <div class="py-10 text-center text-slate-400 text-xs border border-dashed border-slate-200 rounded-xl">
+                    No hay repuestos agregados a la cotización actual.
+                </div>
+                } @else {
+                <!-- MÓVIL (< md): Cards compactas de ítems -->
+                <div class="block md:hidden space-y-3">
+                    @for (item of cart(); track (item.product.id + (item.selectedSupplierId || '')); let idx = $index) {
+                    <div class="p-3 rounded-xl border space-y-2.5"
+                        [ngClass]="item.requiresApproval ? 'bg-amber-50/40 border-amber-300' : 'bg-slate-50/50 border-slate-200'">
+                        <div class="flex items-start justify-between gap-2">
+                            <div>
+                                <span class="font-mono text-[10px] font-bold text-slate-500 uppercase">{{
+                                    item.product.internalCode }}</span>
+                                <h4 class="text-xs font-bold text-slate-900">{{ item.product.name }}</h4>
+                                <span class="text-[10px] text-slate-500 font-mono">📦 {{ item.selectedSupplierName
+                                    }}</span>
+                            </div>
+                            <button type="button" (click)="removeFromCart(idx)"
+                                class="text-slate-400 hover:text-rose-600 font-bold text-base p-1 leading-none">
+                                &times;
+                            </button>
+                        </div>
+
+                        <!-- Controles Cantidad y Tiers en Móvil -->
+                        <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-200/60">
+                            <div
+                                class="inline-flex items-center border border-slate-300 rounded-lg bg-white shadow-2xs overflow-hidden">
+                                <button type="button" (click)="updateQuantity(idx, item.quantity - 1)"
+                                    [disabled]="item.quantity <= 1"
+                                    class="px-2 py-1 text-slate-600 disabled:opacity-30 cursor-pointer text-xs font-bold">-</button>
+                                <input type="number" [value]="item.quantity" min="1" [max]="getItemStockLimit(item)"
+                                    (change)="onQuantityInput(idx, $event)"
+                                    class="w-10 text-center font-mono font-bold text-slate-800 text-xs border-x border-slate-200 py-1 focus:outline-none" />
+                                <button type="button" (click)="updateQuantity(idx, item.quantity + 1)"
+                                    [disabled]="item.quantity >= getItemStockLimit(item)"
+                                    class="px-2 py-1 text-slate-600 disabled:opacity-30 cursor-pointer text-xs font-bold">+</button>
+                            </div>
+
+                            <div class="text-right">
+                                <span class="text-[9px] text-slate-400 font-mono block">SUBTOTAL</span>
+                                <span class="font-mono text-xs font-bold text-slate-900">S/ {{ item.subtotal |
+                                    number:'1.2-2' }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Píldoras Tiers Móvil -->
+                        <div class="grid grid-cols-3 gap-1 pt-1">
+                            <button type="button" (click)="setPriceTier(idx, 1)"
+                                [class]="item.selectedTier === 1 ? 'bg-emerald-900 text-white font-bold' : 'bg-white text-slate-600 border border-slate-200'"
+                                class="py-1 rounded-md text-[10px] font-mono text-center cursor-pointer">
+                                T1: {{ getTierPrice(item.product, 1) | number:'1.0-0' }}
+                            </button>
+                            <button type="button" (click)="setPriceTier(idx, 2)"
+                                [class]="item.selectedTier === 2 ? 'bg-emerald-900 text-white font-bold' : 'bg-white text-slate-600 border border-slate-200'"
+                                class="py-1 rounded-md text-[10px] font-mono text-center cursor-pointer">
+                                T2: {{ getTierPrice(item.product, 2) | number:'1.0-0' }}
+                            </button>
+                            <button type="button" (click)="setPriceTier(idx, 3)"
+                                [class]="item.selectedTier === 3 ? 'bg-amber-600 text-white font-bold' : 'bg-white text-slate-600 border border-slate-200'"
+                                class="py-1 rounded-md text-[10px] font-mono text-center cursor-pointer">
+                                T3*: {{ getTierPrice(item.product, 3) | number:'1.0-0' }}
+                            </button>
+                        </div>
+                    </div>
+                    }
+                </div>
+
+                <!-- DESKTOP (>= md): Tabla completa -->
+                <div class="hidden md:block overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr
+                                class="border-b border-slate-200 bg-slate-50/70 text-slate-400 uppercase text-[9px] font-mono font-bold tracking-wider">
+                                <th class="py-2.5 px-3">SKU / Repuesto</th>
+                                <th class="py-2.5 px-3 text-center">Cant.</th>
+                                <th class="py-2.5 px-3">Nivel de Precio Aplicado</th>
+                                <th class="py-2.5 px-3 text-right">Subtotal</th>
+                                <th class="py-2.5 px-3 text-center">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @for (item of cart(); track (item.product.id + (item.selectedSupplierId || '')); let idx =
+                            $index) {
+                            <tr [class]="item.requiresApproval ? 'bg-amber-50/40 border-l-2 border-amber-400' : 'hover:bg-slate-50/60'"
+                                class="transition-colors">
+                                <td class="py-3 px-3">
+                                    <div class="font-mono font-bold text-slate-800">{{ item.product.internalCode }}
+                                    </div>
+                                    <div class="font-medium text-slate-900">{{ item.product.name }}</div>
+
+                                    @if (item.selectedSupplierName) {
+                                    <div class="mt-1 flex items-center gap-1.5 flex-wrap">
+                                        <span
+                                            class="inline-flex items-center gap-1 text-[10px] font-medium text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded">
+                                            📦 {{ item.selectedSupplierName }}
+                                        </span>
+                                        <span class="text-[10px] font-mono text-slate-500">
+                                            (Límite: {{ getItemStockLimit(item) }} u.)
+                                        </span>
+                                    </div>
+                                    }
+
+                                    @if (item.requiresApproval) {
+                                    <span
+                                        class="inline-block mt-1 text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
+                                        ⚠️ Requiere Aprobación Gerencial
+                                    </span>
+                                    }
+                                </td>
+
+                                <td class="py-3 px-3 text-center">
+                                    <div
+                                        class="inline-flex items-center border border-slate-300 rounded-lg bg-white shadow-2xs overflow-hidden">
+                                        <button type="button" (click)="updateQuantity(idx, item.quantity - 1)"
+                                            [disabled]="item.quantity <= 1"
+                                            class="px-2.5 py-1 text-slate-600 hover:bg-slate-100 disabled:opacity-30 cursor-pointer font-bold text-xs transition-colors">-</button>
+                                        <input type="number" [value]="item.quantity" min="1"
+                                            [max]="getItemStockLimit(item)" (change)="onQuantityInput(idx, $event)"
+                                            class="w-10 text-center font-mono font-bold text-slate-800 border-x border-slate-200 py-1 text-xs focus:outline-none" />
+                                        <button type="button" (click)="updateQuantity(idx, item.quantity + 1)"
+                                            [disabled]="item.quantity >= getItemStockLimit(item)"
+                                            class="px-2.5 py-1 text-slate-600 hover:bg-slate-100 disabled:opacity-30 cursor-pointer font-bold text-xs transition-colors">+</button>
+                                    </div>
+                                </td>
+
+                                <td class="py-3 px-3">
+                                    <div class="inline-flex rounded-lg p-0.5 bg-slate-100 border border-slate-200">
+                                        <button type="button" (click)="setPriceTier(idx, 1)"
+                                            [class]="item.selectedTier === 1 ? 'bg-white shadow-2xs font-bold text-slate-900' : 'text-slate-500 hover:text-slate-800'"
+                                            class="px-2 py-1 text-[10px] rounded-md transition-all cursor-pointer font-mono">
+                                            T1: S/ {{ getTierPrice(item.product, 1) | number:'1.2-2' }}
+                                        </button>
+                                        <button type="button" (click)="setPriceTier(idx, 2)"
+                                            [class]="item.selectedTier === 2 ? 'bg-white shadow-2xs font-bold text-slate-900' : 'text-slate-500 hover:text-slate-800'"
+                                            class="px-2 py-1 text-[10px] rounded-md transition-all cursor-pointer font-mono">
+                                            T2: S/ {{ getTierPrice(item.product, 2) | number:'1.2-2' }}
+                                        </button>
+                                        <button type="button" (click)="setPriceTier(idx, 3)"
+                                            [class]="item.selectedTier === 3 ? 'bg-amber-600 text-white font-bold shadow-2xs' : 'text-slate-500 hover:text-slate-800'"
+                                            class="px-2 py-1 text-[10px] rounded-md transition-all cursor-pointer font-mono">
+                                            T3 Esp: S/ {{ getTierPrice(item.product, 3) | number:'1.2-2' }}
+                                        </button>
+                                    </div>
+                                </td>
+
+                                <td class="py-3 px-3 text-right font-mono font-bold text-slate-900 text-xs">
+                                    S/ {{ item.subtotal | number:'1.2-2' }}
+                                </td>
+
+                                <td class="py-3 px-3 text-center">
+                                    <button (click)="removeFromCart(idx)"
+                                        class="text-slate-400 hover:text-rose-600 cursor-pointer p-1 transition-colors text-base font-bold leading-none">
+                                        &times;
+                                    </button>
+                                </td>
+                            </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                }
+            </section>
+        </div>
+
+        <!-- COLUMNA DERECHA: Resumen Financiero & Emisión (4 cols en XL) -->
+        <div class="xl:col-span-4 w-full">
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-2xs xl:sticky xl:top-4 space-y-4">
+                <div>
+                    <span
+                        class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">Documento</span>
+                    <div class="flex items-center justify-between mt-0.5">
+                        <span class="font-mono text-sm font-extrabold text-slate-900">PROF-2026-AUTOGEN</span>
+                        <span
+                            class="px-2 py-0.5 bg-slate-100 text-slate-600 text-[10px] font-bold rounded">BORRADOR</span>
+                    </div>
+                </div>
+
+                <div class="space-y-1.5 border-t border-b border-slate-100 py-3 text-xs font-mono">
+                    <div class="flex justify-between text-slate-500">
+                        <span>Subtotal Neto (Base)</span>
+                        <span class="text-slate-800 font-semibold">S/ {{ subtotalNeto() | number:'1.2-2' }}</span>
+                    </div>
+                    <div class="flex justify-between text-slate-500">
+                        <span>I.G.V. Oficial (18%)</span>
+                        <span class="text-slate-800 font-semibold">S/ {{ igv() | number:'1.2-2' }}</span>
+                    </div>
+                </div>
+
+                <div>
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Cotización
+                        (PEN)</span>
+                    <div class="font-mono text-2xl sm:text-3xl font-black text-emerald-800 tracking-tight mt-0.5">
+                        S/ {{ total() | number:'1.2-2' }}
+                    </div>
+                    <span class="text-[10px] text-slate-400 font-mono block mt-0.5">Incluye I.G.V.</span>
+                </div>
+
+                @if (formErrorMessage()) {
+                <div
+                    class="bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs text-rose-800 flex items-start gap-2">
+                    <span class="font-bold">✕</span>
+                    <p class="leading-tight">{{ formErrorMessage() }}</p>
+                </div>
+                }
+
+                @if (requiresManagerApproval()) {
+                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900 space-y-1">
+                    <p class="font-bold flex items-center gap-1 text-[11px]">
+                        <span>⚠️ Requiere Aprobación de Gerencia</span>
+                    </p>
+                    <p class="text-[10px] text-amber-800 leading-normal">
+                        Contiene repuestos con margen mínimo (T3). Pasará a estado <strong>PENDIENTE DE
+                            APROBACIÓN</strong>.
+                    </p>
+                </div>
+                } @else {
+                <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-900">
+                    <p class="font-bold text-emerald-900 text-[11px]">Válida por 48 Horas</p>
+                    <p class="text-[10px] text-emerald-700 mt-0.5">Lista para emisión inmediata al cliente.</p>
+                </div>
+                }
+
+                <div class="pt-1">
+                    <button type="button" (click)="submitProforma()"
+                        [disabled]="isSubmitting() || cart().length === 0 || !selectedCustomer()"
+                        class="w-full h-11 bg-emerald-800 hover:bg-emerald-900 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl flex items-center justify-center gap-2 cursor-pointer transition-all shadow-xs">
+                        @if (isSubmitting()) {
+                        <span>Emitiendo...</span>
+                        } @else {
+                        <span>Emitir Proforma</span>
+                        <kbd
+                            class="hidden md:inline-block text-[9px] font-mono bg-emerald-950 text-emerald-200 px-1 rounded">F2</kbd>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CONFIRMACIÓN / DESCARGA PDF -->
+    @if (showSuccessModal()) {
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+        <div
+            class="bg-white rounded-2xl shadow-2xl border border-slate-100 w-full max-w-sm text-center p-6 space-y-4 animate-in fade-in zoom-in-95">
+            <div
+                class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto text-xl font-bold shadow-xs">
+                ✓
+            </div>
+
+            <div>
+                <h3 class="text-base font-bold text-slate-900">Proforma Emitida</h3>
+                <p class="text-xs text-slate-500 mt-1">
+                    Código: <span class="font-mono font-bold text-slate-800">{{ lastCreatedProforma()?.code }}</span>
+                </p>
+                <div class="mt-2">
+                    @if (lastCreatedProforma()?.status === 'PENDING_APPROVAL') {
+                    <span
+                        class="text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 px-2.5 py-0.5 rounded-full uppercase">
+                        Pendiente de Aprobación (Tier 3)
+                    </span>
+                    } @else {
+                    <span
+                        class="text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 px-2.5 py-0.5 rounded-full uppercase">
+                        Lista para Despacho
+                    </span>
+                    }
+                </div>
+            </div>
+
+            <p class="text-xs text-slate-500">
+                ¿Deseas descargar el comprobante en PDF ahora?
+            </p>
+
+            <div class="grid grid-cols-2 gap-2 pt-2 text-xs">
+                <button type="button" (click)="closeSuccessModal()"
+                    class="w-full py-2 px-3 text-slate-600 bg-slate-100 hover:bg-slate-200 font-semibold rounded-lg transition-colors cursor-pointer">
+                    Omitir
+                </button>
+                <button type="button" (click)="downloadAndClose()"
+                    class="w-full py-2 px-3 bg-emerald-800 hover:bg-emerald-900 text-white font-bold rounded-lg shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
+                    <span>📄</span> Descargar
+                </button>
+            </div>
+        </div>
+    </div>
+    }
+</div>

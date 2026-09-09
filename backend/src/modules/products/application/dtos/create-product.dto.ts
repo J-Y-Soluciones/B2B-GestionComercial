@@ -1,48 +1,93 @@
-// src/modules/products/application/dtos/create-product.dto.ts
-import { IsString, IsNotEmpty, IsOptional, IsNumber, IsArray, ValidateNested, ArrayMinSize, ArrayMaxSize, Min, MaxLength, IsInt, Max } from 'class-validator';
+// backend/src/modules/products/application/dtos/create-product.dto.ts
+import {
+    IsString,
+    IsNotEmpty,
+    IsInt,
+    IsPositive,
+    IsOptional,
+    IsBoolean,
+    IsArray,
+    ValidateNested,
+    ArrayMinSize,
+    Min,
+    IsNumber,
+    IsUUID,
+    MaxLength,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
-export class PriceTierDto {
-    @IsInt({ message: 'El nivel (tier) debe ser un número entero' })
+export class PriceTierItemDto {
+    @IsInt()
     @Min(1)
-    @Max(3)
     tier!: number;
 
-    @IsNumber({}, { message: 'El precio debe ser un valor numérico' })
-    @Min(0)
+    @IsNumber({ maxDecimalPlaces: 2 })
+    @IsPositive()
     price!: number;
+}
+
+export class InitialStockItemDto {
+    @IsUUID('4')
+    @IsNotEmpty()
+    supplierId!: string;
+
+    @IsString()
+    @IsOptional()
+    @MaxLength(100)
+    supplierSku?: string;
+
+    @IsInt()
+    @Min(0)
+    stock!: number;
+
+    @IsNumber({ maxDecimalPlaces: 2 })
+    @IsPositive()
+    costPrice!: number;
 }
 
 export class CreateProductDto {
     @IsString()
-    @IsNotEmpty({ message: 'El código interno es obligatorio' })
+    @IsNotEmpty()
     @MaxLength(50)
     internalCode!: string;
 
     @IsString()
-    @IsNotEmpty({ message: 'El nombre es obligatorio' })
+    @IsNotEmpty()
     @MaxLength(255)
     name!: string;
 
     @IsString()
-    @IsNotEmpty({ message: 'La categoría es obligatoria' })
+    @IsNotEmpty()
     @MaxLength(100)
     category!: string;
 
     @IsString()
-    @IsNotEmpty({ message: 'La marca es obligatoria' })
+    @IsNotEmpty()
     @MaxLength(100)
     brand!: string;
 
+    @IsString()
     @IsOptional()
+    imageUrl?: string;
+
     @IsInt()
     @Min(0)
+    @IsOptional()
     minStock?: number;
 
+    @IsBoolean()
+    @IsOptional()
+    isActive?: boolean;
+
     @IsArray()
+    @ArrayMinSize(1, { message: 'Debe configurar al menos un nivel de precio' })
     @ValidateNested({ each: true })
-    @Type(() => PriceTierDto)
-    @ArrayMinSize(3, { message: 'Debe proporcionar exactamente 3 niveles de precio' })
-    @ArrayMaxSize(3, { message: 'Debe proporcionar exactamente 3 niveles de precio' })
-    priceTiers!: PriceTierDto[];
+    @Type(() => PriceTierItemDto)
+    priceTiers!: PriceTierItemDto[];
+
+    @IsArray()
+    @IsOptional()
+    @ValidateNested({ each: true })
+    @Type(() => InitialStockItemDto)
+    stocks?: InitialStockItemDto[];
 }

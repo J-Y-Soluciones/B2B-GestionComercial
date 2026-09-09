@@ -1,7 +1,9 @@
-// src/app/app.routes.ts
 import { Routes } from '@angular/router';
 import { AdminLayoutComponent } from './layout/admin-layout/admin-layout.component';
 import { authGuard } from './core/guards/auth.guard';
+import { roleGuard } from './core/guards/role.guard';
+import { AuthService } from './core/services/auth.service';
+import { inject } from '@angular/core';
 
 export const routes: Routes = [
     {
@@ -19,7 +21,6 @@ export const routes: Routes = [
         loadComponent: () => import('./features/auth/reset-password/reset-password.component').then(m => m.ResetPasswordComponent),
         title: 'Restablecer Contraseña | Sistema de Repuestos'
     },
-    // Shell administrativo protegido con Guard
     {
         path: '',
         component: AdminLayoutComponent,
@@ -27,33 +28,85 @@ export const routes: Routes = [
         children: [
             {
                 path: 'proformas',
-                loadComponent: () => import('./features/proformas/proformas-list.component').then(m => m.ProformasListComponent),
-                title: 'Cotizador y Proformas | VortexYolTI'
+                canActivate: [roleGuard],
+                data: { roles: ['ADMIN', 'MANAGER', 'SELLER'] },
+                children: [
+                    {
+                        path: '',
+                        loadComponent: () => import('./features/proformas/proformas-list.component').then(m => m.ProformasListComponent),
+                        title: 'Listado de Proformas | Sistema de Repuestos'
+                    },
+                    {
+                        path: 'create',
+                        loadComponent: () => import('./features/proformas/components/cotizador/cotizador.component').then(m => m.CotizadorComponent),
+                        title: 'Cotizador Rápido F2 | Sistema de Repuestos'
+                    }
+                ]
+            },
+            {
+                path: 'sales',
+                children: [
+                    {
+                        path: '',
+                        loadComponent: () => import('./features/sales/sales-list.component').then(m => m.SalesListComponent),
+                        title: 'Historial de Ventas & Auditoría | Sistema de Repuestos'
+                    },
+                    {
+                        path: 'checkout',
+                        loadComponent: () => import('./features/checkout/checkout.component').then(m => m.CheckoutComponent),
+                        title: 'Checkout & Emisión Mostrador | Sistema de Repuestos'
+                    },
+                    {
+                        path: 'checkout/:proformaId',
+                        loadComponent: () => import('./features/checkout/checkout.component').then(m => m.CheckoutComponent),
+                        title: 'Checkout Proforma | Sistema de Repuestos'
+                    }
+                ]
+            },
+            {
+                path: 'promotions',
+                canActivate: [roleGuard],
+                data: { roles: ['ADMIN', 'MANAGER'] },
+                loadComponent: () => import('./features/promotions/promotions-list.component').then(m => m.PromotionsListComponent),
+                title: 'Promociones & Descuentos Especiales | Sistema de Repuestos'
             },
             {
                 path: 'catalog',
                 loadComponent: () => import('./features/catalog/catalog-list.component').then(m => m.CatalogListComponent),
-                title: 'Catálogo e Inventario | VortexYolTI'
+                title: 'Catálogo e Inventario | Sistema de Repuestos'
             },
             {
                 path: 'customers',
                 loadComponent: () => import('./features/customers/customers-list.component').then(m => m.CustomersListComponent),
-                title: 'Clientes | VortexYolTI'
+                title: 'Clientes | Sistema de Repuestos'
             },
             {
                 path: 'approvals',
+                canActivate: [roleGuard],
+                data: { roles: ['ADMIN', 'MANAGER'] },
                 loadComponent: () => import('./features/approvals/approvals-list.component').then(m => m.ApprovalsListComponent),
-                title: 'Bandeja de Aprobaciones | VortexYolTI'
+                title: 'Bandeja de Aprobaciones | Sistema de Repuestos'
             },
             {
                 path: 'users',
+                canActivate: [roleGuard],
+                data: { roles: ['ADMIN'] },
                 loadComponent: () => import('./features/users/users-list.component').then(m => m.UsersListComponent),
-                title: 'Usuarios y Perfiles | VortexYolTI'
+                title: 'Usuarios y Perfiles | Sistema de Repuestos'
             },
             {
                 path: '',
-                redirectTo: 'approvals',
-                pathMatch: 'full'
+                pathMatch: 'full',
+                redirectTo: () => {
+                    const auth = inject(AuthService);
+                    const role = auth.currentUser()?.role;
+
+                    if (role === 'WAREHOUSE') {
+                        return 'catalog';
+                    }
+
+                    return 'proformas/create';
+                }
             }
         ]
     },

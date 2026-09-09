@@ -2,175 +2,176 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
-import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
-    selector: 'app-reset-password',
-    standalone: true,
-    imports: [CommonModule, ReactiveFormsModule, RouterModule],
-    template: `
-    <div class="min-h-screen flex items-center justify-center bg-slate-50 p-4 font-sans overflow-y-auto">
-      <div class="max-w-md w-full bg-white rounded-2xl shadow-sm border border-slate-200/80 p-8 sm:p-10 relative overflow-hidden my-8">
+  selector: 'app-reset-password',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
+  template: `
+    <div class="min-h-screen flex items-center justify-center bg-slate-50 p-4 font-sans">
+      <div class="max-w-md w-full bg-white rounded-2xl shadow-2xs border border-slate-200 p-6 sm:p-8 relative overflow-hidden my-auto">
         
-        <!-- Top Decorative Line -->
-        <div class="absolute top-0 left-0 w-full h-1 bg-emerald-600"></div>
-
-        <!-- Success State -->
-        <div *ngIf="isSuccess()" class="text-center animate-fade-in">
-          <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-emerald-50 mb-6">
-            <svg class="h-8 w-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
+        <!-- Éxito -->
+        @if (isSuccess()) {
+          <div class="text-center animate-in fade-in space-y-4">
+            <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-100 text-2xl font-bold">
+              ✓
+            </div>
+            <div>
+              <h2 class="text-base font-extrabold text-slate-900 tracking-tight">Contraseña actualizada</h2>
+              <p class="text-slate-500 text-xs mt-1.5 leading-relaxed">
+                Tu clave ha sido restablecida exitosamente. Ya puedes acceder con tus nuevas credenciales.
+              </p>
+            </div>
+            <div class="pt-2">
+              <a routerLink="/login" class="w-full inline-flex justify-center items-center h-11 px-4 rounded-xl text-xs font-bold text-white bg-emerald-800 hover:bg-emerald-900 transition-colors shadow-xs">
+                Ir al inicio de sesión &rarr;
+              </a>
+            </div>
           </div>
-          <h2 class="text-2xl font-bold text-slate-900 tracking-tight mb-3">Contraseña actualizada</h2>
-          <p class="text-slate-500 text-sm mb-8 leading-relaxed">
-            Tu contraseña ha sido restablecida exitosamente. Ya puedes acceder al sistema con tus nuevas credenciales.
-          </p>
-          <a routerLink="/login" class="w-full inline-flex justify-center items-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 active:scale-[0.99] transition-all">
-            Ir al inicio de sesión
-          </a>
-        </div>
-
-        <!-- Form State -->
-        <div *ngIf="!isSuccess()" class="animate-fade-in">
-          <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center mb-6">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
-            </svg>
-          </div>
-          
-          <h2 class="text-2xl font-bold text-slate-900 tracking-tight mb-2">Crear nueva contraseña</h2>
-          <p class="text-slate-500 text-sm mb-8">
-            Ingresa una contraseña segura de al menos 6 caracteres para tu cuenta.
-          </p>
-
-          <!-- Error Banner -->
-          <div *ngIf="errorMessage()" class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start gap-3 animate-fade-in">
-            <svg class="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <span class="text-sm font-medium">{{ errorMessage() }}</span>
-          </div>
-
-          <form [formGroup]="resetForm" (ngSubmit)="onSubmit()" class="space-y-6">
-            <div class="space-y-2">
-              <label for="newPassword" class="block text-xs font-semibold uppercase tracking-wider text-slate-700">
-                Nueva Contraseña
-              </label>
-              <input 
-                id="newPassword" 
-                type="password" 
-                formControlName="newPassword"
-                placeholder="••••••••"
-                class="w-full px-4 py-2.5 rounded-lg border border-slate-200/80 bg-white text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all outline-none"
-                [class.border-red-300]="isFieldInvalid('newPassword')"
-              />
-              <p *ngIf="isFieldInvalid('newPassword')" class="text-red-500 text-xs mt-1">Debe tener al menos 6 caracteres.</p>
+        } @else {
+          <!-- Formulario -->
+          <div class="animate-in fade-in space-y-4">
+            <div>
+              <div class="text-[10px] font-mono font-bold tracking-wider text-slate-400 uppercase">
+                SEGURIDAD &bull; NUEVA CLAVE
+              </div>
+              <h2 class="text-lg font-extrabold text-slate-900 tracking-tight mt-0.5">Crear nueva contraseña</h2>
+              <p class="text-xs text-slate-500 mt-1">
+                Ingresa una contraseña segura de al menos 6 caracteres para tu cuenta.
+              </p>
             </div>
 
-            <div class="space-y-2">
-              <label for="confirmPassword" class="block text-xs font-semibold uppercase tracking-wider text-slate-700">
-                Confirmar Contraseña
-              </label>
-              <input 
-                id="confirmPassword" 
-                type="password" 
-                formControlName="confirmPassword"
-                placeholder="••••••••"
-                class="w-full px-4 py-2.5 rounded-lg border border-slate-200/80 bg-white text-slate-900 placeholder-slate-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all outline-none"
-                [class.border-red-300]="isFieldInvalid('confirmPassword') || resetForm.errors?.['mismatch']"
-              />
-              <p *ngIf="resetForm.errors?.['mismatch'] && (resetForm.get('confirmPassword')?.dirty || resetForm.get('confirmPassword')?.touched)" class="text-red-500 text-xs mt-1">Las contraseñas no coinciden.</p>
-            </div>
+            @if (errorMessage()) {
+              <div class="bg-rose-50 border border-rose-200 text-rose-800 p-3 rounded-xl flex items-start gap-2.5 text-xs">
+                <span class="font-bold text-sm">⚠️</span>
+                <span>{{ errorMessage() }}</span>
+              </div>
+            }
 
-            <button 
-              type="submit" 
-              [disabled]="isLoading() || !token()"
-              class="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/20 active:scale-[0.99] transition-all disabled:opacity-70 disabled:cursor-not-allowed disabled:active:scale-100"
-            >
-              <svg *ngIf="isLoading()" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              {{ isLoading() ? 'Guardando...' : 'Guardar contraseña' }}
-            </button>
-          </form>
-        </div>
-        
-        <!-- Footer Branding -->
-        <div class="mt-8 text-center">
-          <p class="text-xs text-slate-400">Desarrollado por VortexYolTI</p>
-        </div>
+            <form [formGroup]="resetForm" (ngSubmit)="onSubmit()" class="space-y-4">
+              <div>
+                <label for="newPassword" class="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  Nueva Contraseña *
+                </label>
+                <input 
+                  id="newPassword" 
+                  type="password" 
+                  formControlName="newPassword"
+                  placeholder="••••••••"
+                  class="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-emerald-700 focus:ring-2 focus:ring-emerald-600/20 outline-none text-xs font-mono transition-all"
+                  [class.border-rose-400]="isFieldInvalid('newPassword')"
+                />
+                @if (isFieldInvalid('newPassword')) {
+                  <p class="text-rose-600 text-[10px] mt-1">Debe tener al menos 6 caracteres.</p>
+                }
+              </div>
+
+              <div>
+                <label for="confirmPassword" class="block text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 mb-1">
+                  Confirmar Contraseña *
+                </label>
+                <input 
+                  id="confirmPassword" 
+                  type="password" 
+                  formControlName="confirmPassword"
+                  placeholder="••••••••"
+                  class="w-full h-11 px-3.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-900 placeholder-slate-400 focus:bg-white focus:border-emerald-700 focus:ring-2 focus:ring-emerald-600/20 outline-none text-xs font-mono transition-all"
+                  [class.border-rose-400]="isFieldInvalid('confirmPassword') || resetForm.errors?.['mismatch']"
+                />
+                @if (resetForm.errors?.['mismatch'] && (resetForm.get('confirmPassword')?.dirty || resetForm.get('confirmPassword')?.touched)) {
+                  <p class="text-rose-600 text-[10px] mt-1">Las contraseñas no coinciden.</p>
+                }
+              </div>
+
+              <button 
+                type="submit" 
+                [disabled]="isLoading() || !token()"
+                class="w-full h-11 flex justify-center items-center px-4 rounded-xl shadow-xs text-xs font-bold text-white bg-emerald-800 hover:bg-emerald-900 transition-all disabled:bg-slate-300 disabled:cursor-not-allowed cursor-pointer"
+              >
+                @if (isLoading()) {
+                  <span>Actualizando contraseña...</span>
+                } @else {
+                  <span>Guardar nueva contraseña</span>
+                }
+              </button>
+            </form>
+          </div>
+        }
+
+        <!-- Footer -->
+        <footer class="mt-6 pt-4 border-t border-slate-100 text-center">
+          <p class="text-[11px] text-slate-400 font-mono">VortexYolTI Core</p>
+        </footer>
       </div>
     </div>
-  `,
-    styles: [`
-    .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
-    @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
-  `]
+  `
 })
 export class ResetPasswordComponent implements OnInit {
-    private readonly fb = inject(FormBuilder);
-    private readonly route = inject(ActivatedRoute);
-    private readonly authService = inject(AuthService);
+  private readonly fb = inject(FormBuilder);
+  private readonly route = inject(ActivatedRoute);
+  private readonly authService = inject(AuthService);
 
-    public isLoading = signal(false);
-    public isSuccess = signal(false);
-    public errorMessage = signal<string | null>(null);
-    public token = signal<string | null>(null);
+  public isLoading = signal(false);
+  public isSuccess = signal(false);
+  public errorMessage = signal<string | null>(null);
+  public token = signal<string | null>(null);
 
-    public resetForm = this.fb.group({
-        newPassword: ['', [Validators.required, Validators.minLength(6)]],
-        confirmPassword: ['', [Validators.required]]
-    }, { validators: this.passwordMatchValidator });
+  public resetForm = this.fb.group({
+    newPassword: ['', [Validators.required, Validators.minLength(6)]],
+    confirmPassword: ['', [Validators.required]]
+  }, { validators: this.passwordMatchValidator });
 
-    ngOnInit(): void {
-        this.route.queryParams.subscribe(params => {
-            const tokenParam = params['token'];
-            if (tokenParam) {
-                this.token.set(tokenParam);
-            } else {
-                this.errorMessage.set('El enlace de recuperación es inválido o está incompleto.');
-            }
-        });
+  ngOnInit(): void {
+    this.route.queryParams.subscribe(params => {
+      const tokenParam = params['token'];
+      if (tokenParam) {
+        this.token.set(tokenParam);
+      } else {
+        this.errorMessage.set('El enlace de recuperación es inválido o está incompleto.');
+      }
+    });
+  }
+
+  private passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
+    const newPassword = control.get('newPassword');
+    const confirmPassword = control.get('confirmPassword');
+    if (newPassword && confirmPassword && newPassword.value !== confirmPassword.value) {
+      return { mismatch: true };
+    }
+    return null;
+  }
+
+  public isFieldInvalid(field: string): boolean {
+    const control = this.resetForm.get(field);
+    return !!(control && control.invalid && (control.dirty || control.touched));
+  }
+
+  public onSubmit(): void {
+    if (this.resetForm.invalid || !this.token()) {
+      this.resetForm.markAllAsTouched();
+      return;
     }
 
-    private passwordMatchValidator(control: AbstractControl): ValidationErrors | null {
-        const newPassword = control.get('newPassword');
-        const confirmPassword = control.get('confirmPassword');
-        if (newPassword && confirmPassword && newPassword.value !== confirmPassword.value) {
-            return { mismatch: true };
-        }
-        return null;
-    }
+    this.isLoading.set(true);
+    this.errorMessage.set(null);
 
-    public isFieldInvalid(field: string): boolean {
-        const control = this.resetForm.get(field);
-        return !!(control && control.invalid && (control.dirty || control.touched));
-    }
+    const payload = {
+      token: this.token()!,
+      newPassword: this.resetForm.getRawValue().newPassword!
+    };
 
-    public onSubmit(): void {
-        if (this.resetForm.invalid || !this.token()) {
-            this.resetForm.markAllAsTouched();
-            return;
-        }
-
-        this.isLoading.set(true);
-        this.errorMessage.set(null);
-
-        const payload = {
-            token: this.token()!,
-            newPassword: this.resetForm.getRawValue().newPassword!
-        };
-
-        this.authService.resetPassword(payload).subscribe({
-            next: () => {
-                this.isLoading.set(false);
-                this.isSuccess.set(true);
-            },
-            error: (err) => {
-                this.isLoading.set(false);
-                this.errorMessage.set(err.error?.message || 'El token ha expirado o es inválido. Solicita uno nuevo.');
-            }
-        });
-    }
+    this.authService.resetPassword(payload).subscribe({
+      next: () => {
+        this.isLoading.set(false);
+        this.isSuccess.set(true);
+      },
+      error: (err) => {
+        this.isLoading.set(false);
+        this.errorMessage.set(err.error?.message || 'El token ha expirado o es inválido. Solicita uno nuevo.');
+      }
+    });
+  }
 }

@@ -1,11 +1,14 @@
-// backend/src/modules/proformas/application/dtos/create-proforma.dto.ts
-import { IsNotEmpty, IsUUID, IsArray, ValidateNested, ArrayMinSize, IsNumber, Min, IsInt, Max } from 'class-validator';
+import { IsNotEmpty, IsUUID, IsArray, ValidateNested, ArrayMinSize, IsNumber, Min, IsInt, Max, IsOptional } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateProformaItemDto {
     @IsUUID('4', { message: 'El ID del producto debe ser un UUID válido' })
     @IsNotEmpty()
     productId!: string;
+
+    @IsOptional()
+    @IsUUID('4', { message: 'El ID del proveedor debe ser un UUID válido' })
+    supplierId?: string;
 
     @IsInt({ message: 'La cantidad debe ser un número entero' })
     @Min(1, { message: 'La cantidad mínima es 1' })

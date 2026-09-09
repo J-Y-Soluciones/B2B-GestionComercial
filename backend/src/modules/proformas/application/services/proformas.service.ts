@@ -1,4 +1,4 @@
-// backend/src/modules/proformas/application/services/proforma.service.ts
+// backend/src/modules/proformas/application/services/proformas.service.ts
 import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
 import type { IProformaRepository, ProformaWithDetails, SearchProformaFilters } from '../../domain/repositories/proforma.repository.interface.js';
 import { PROFORMA_REPOSITORY } from '../../domain/repositories/proforma.repository.interface.js';
@@ -30,6 +30,7 @@ export class ProformaService {
 
             return {
                 productId: item.productId,
+                supplierId: item.supplierId,
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
                 priceTier: item.priceTier,
@@ -77,14 +78,24 @@ export class ProformaService {
             throw new NotFoundException('Proforma no encontrada');
         }
 
-        if (proforma.status !== ProformaStatus.PENDING_APPROVAL) {
-            throw new BadRequestException('La proforma no está pendiente de aprobación');
+        if (proforma.status === ProformaStatus.CONVERTED) {
+            throw new BadRequestException('No se puede descartar una proforma ya liquidada.');
+        }
+
+        const cancellableStatuses: ProformaStatus[] = [
+            ProformaStatus.PENDING_APPROVAL,
+            ProformaStatus.APPROVED,
+            ProformaStatus.PENDING,
+        ];
+
+        if (!cancellableStatuses.includes(proforma.status)) {
+            throw new BadRequestException('La proforma no puede ser descartada en su estado actual.');
         }
 
         return this.proformaRepository.changeStatus(id, {
             status: ProformaStatus.REJECTED,
             changedById: managerId,
-            reason,
+            reason: reason || 'Operación descartada por desistimiento en mostrador.',
         });
     }
 
@@ -133,5 +144,31 @@ export class ProformaService {
             buffer,
             fileName: `${proforma.code}.pdf`,
         };
+    }
+
+    async cancelProforma(id: string, userId: string, reason?: string): Promise<ProformaWithDetails> {
+        const proforma = await this.proformaRepository.findById(id);
+
+        if (!proforma) {
+            throw new NotFoundException('Proforma no encontrada.');
+        }
+
+        if (proforma.status === ProformaStatus.CONVERTED) {
+            throw new BadRequestException('No se puede cancelar una proforma que ya fue cobrada y convertida a venta.');
+        }
+
+        if (
+            proforma.status !== ProformaStatus.PENDING_APPROVAL &&
+            proforma.status !== ProformaStatus.APPROVED &&
+            proforma.status !== ProformaStatus.PENDING
+        ) {
+            throw new BadRequestException('La proforma no se puede cancelar en su estado actual.');
+        }
+
+        return this.proformaRepository.changeStatus(id, {
+            status: ProformaStatus.REJECTED,
+            changedById: userId,
+            reason: reason || 'Operación descartada por desistimiento del cliente en caja.',
+        });
     }
 }
