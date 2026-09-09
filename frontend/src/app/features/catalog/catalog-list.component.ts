@@ -217,6 +217,7 @@ export class CatalogListComponent implements OnInit {
     console.log('--- DIAGNÓSTICO IMAGEURL ---');
     console.log('1. DATA RECIBIDA DEL MODAL:', data.imageUrl);
     console.log('2. PAYLOAD FINAL A ENVIAR:', payload.imageUrl);
+
     if (!editing && data.initialSupplierId) {
       payload.stocks = [
         {
