@@ -206,7 +206,7 @@ export class CatalogListComponent implements OnInit {
       name: data.name.trim(),
       brand: data.brand.trim(),
       category: data.category,
-      imageUrl: data.imageUrl?.trim() || undefined,
+      imageUrl: data.imageUrl?.trim() ? data.imageUrl.trim() : undefined,
       minStock: Number(data.minStock),
       priceTiers: [
         { tier: 1, price: Number(data.tier1Price) },
