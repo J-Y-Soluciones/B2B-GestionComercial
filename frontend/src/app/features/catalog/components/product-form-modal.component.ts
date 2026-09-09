@@ -1,5 +1,5 @@
 // src/app/features/catalog/components/product-form-modal.component.ts
-import { Component, HostListener, input, output, effect, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, input, output, effect, computed, inject, signal, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import type { Product } from '../../../core/models/product.model';
@@ -259,6 +259,8 @@ export interface ProductFormData {
 })
 export class ProductFormModalComponent {
   private readonly storageService = inject(StorageService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
   isUploadingImage = signal(false);
 
   product = input<Product | null>(null);
@@ -302,6 +304,9 @@ export class ProductFormModalComponent {
   constructor() {
     effect(() => {
       const prod = this.product();
+      // Si el usuario está en pleno proceso de subida, no reiniciar form
+      if (this.isUploadingImage()) return;
+
       if (prod) {
         const getP = (num: number) => {
           const t = prod.priceTiers?.find((item) => item.tier === num);
@@ -361,17 +366,24 @@ export class ProductFormModalComponent {
 
     try {
       this.isUploadingImage.set(true);
-      // Sube directo a Supabase Storage y retorna la URL pública HTTPS
+
       const publicUrl = await this.storageService.uploadProductImage(
         file,
         this.form.internalCode || 'repuesto'
       );
-      this.form.imageUrl = publicUrl;
+
+      // Reasignación inmutable y disparo explícito de detección
+      this.form = {
+        ...this.form,
+        imageUrl: publicUrl
+      };
+      this.cdr.detectChanges();
     } catch (err: any) {
       alert(err?.message || 'Error al subir la imagen a la nube.');
     } finally {
       this.isUploadingImage.set(false);
       input.value = '';
+      this.cdr.detectChanges();
     }
   }
 
