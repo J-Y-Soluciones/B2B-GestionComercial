@@ -1,5 +1,16 @@
 // src/app/features/catalog/components/product-form-modal.component.ts
-import { Component, HostListener, input, output, effect, computed, inject, signal, ChangeDetectorRef } from '@angular/core';
+import {
+  Component,
+  HostListener,
+  input,
+  output,
+  effect,
+  computed,
+  inject,
+  signal,
+  ChangeDetectorRef,
+  untracked
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import type { Product } from '../../../core/models/product.model';
@@ -276,6 +287,8 @@ export class ProductFormModalComponent {
   initialCostPrice = 0;
   initialSku = '';
 
+  private lastLoadedKey: string | null = '__init__';
+
   form: ProductFormData = {
     internalCode: '',
     name: '',
@@ -304,8 +317,15 @@ export class ProductFormModalComponent {
   constructor() {
     effect(() => {
       const prod = this.product();
-      // Si el usuario está en pleno proceso de subida, no reiniciar form
-      if (this.isUploadingImage()) return;
+      const currentKey = prod ? prod.id : 'new';
+
+      // Evitar que el effect se registre dependiente de isUploadingImage
+      const uploading = untracked(() => this.isUploadingImage());
+      if (uploading) return;
+
+      // Solo reinicializar el formulario si cambió el producto objetivo
+      if (this.lastLoadedKey === currentKey) return;
+      this.lastLoadedKey = currentKey;
 
       if (prod) {
         const getP = (num: number) => {
@@ -329,7 +349,7 @@ export class ProductFormModalComponent {
           internalCode: '',
           name: '',
           brand: '',
-          category: this.categories()[0] || 'Frenos',
+          category: untracked(() => this.categories()[0]) || 'Frenos',
           minStock: 5,
           tier1Price: 0,
           tier2Price: 0,
@@ -372,7 +392,6 @@ export class ProductFormModalComponent {
         this.form.internalCode || 'repuesto'
       );
 
-      // Reasignación inmutable y disparo explícito de detección
       this.form = {
         ...this.form,
         imageUrl: publicUrl
