@@ -1,7 +1,7 @@
 export const environment = {
     production: true,
     isDemo: true,
-    apiUrl: 'https://vortexyolti-backend-demo.onrender.com', // URL de tu backend demo en Render
+    apiUrl: 'https://vortexyolti-backend-demo.onrender.com', // <-- La URL de tu nuevo servicio en Render
     supabaseUrl: 'https://xnpgihyvxzfyqsfkgpxm.supabase.co',
     supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhucGdpaHl2eHpmeXFzZmtncHhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg5MjI0MzYsImV4cCI6MjEwNDQ5ODQzNn0.jPMA3QMgyAZfGt785Opd8M3WOWAyViEralS0NcDsSe8'
 };
