@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators, FormControl } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { environment } from '../../../../environments/environment';
 
 interface LoginForm {
   email: FormControl<string | null>;
@@ -157,7 +158,32 @@ interface LoginForm {
                 <span>Iniciar Sesión &rarr;</span>
               }
             </button>
+            
           </form>
+
+          <!-- Botón y Banner de Acceso Rápido DEMO -->
+@if (isDemo()) {
+  <div class="mt-4 pt-4 border-t border-slate-100 flex flex-col gap-2.5">
+    <div class="flex items-center justify-between px-1">
+      <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-emerald-800 uppercase bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        Entorno Demo
+      </span>
+      <span class="text-[11px] text-slate-600 font-mono">demo@jysoluciones.tech</span>
+    </div>
+
+    <button
+      type="button"
+      (click)="fillDemoCredentials()"
+      class="w-full py-2.5 px-4 rounded-xl text-xs font-semibold tracking-wide text-emerald-900 bg-emerald-100/70 hover:bg-emerald-200/80 active:scale-[0.99] border border-emerald-300/70 transition-all flex items-center justify-center gap-2 shadow-xs cursor-pointer"
+    >
+      <svg class="w-4 h-4 text-emerald-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+      </svg>
+      Acceso Rápido con Cuenta Demo
+    </button>
+  </div>
+}
 
           <!-- Footer -->
           <footer class="mt-6 pt-4 border-t border-slate-100 text-center">
@@ -174,6 +200,16 @@ export class LoginComponent {
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
 
+  // Bandera de modo demo controlada por el build/environment
+  // En login.component.ts:
+  public readonly isDemo = signal<boolean>(
+    typeof window !== 'undefined' && (
+      window.location.hostname === 'localhost' ||
+      window.location.hostname.includes('127.0.0.1') ||
+      window.location.hostname.includes('demo') ||
+      (environment as Record<string, unknown>)['isDemo'] === true
+    )
+  );
   public showPassword = signal(false);
   public isLoading = signal(false);
   public errorMessage = signal<string | null>(null);
@@ -191,6 +227,17 @@ export class LoginComponent {
   public isFieldInvalid(field: keyof LoginForm): boolean {
     const control = this.loginForm.get(field);
     return !!(control && control.invalid && (control.dirty || control.touched));
+  }
+
+  /**
+   * Autocompleta las credenciales de prueba y ejecuta el login directamente
+   */
+  public fillDemoCredentials(): void {
+    this.loginForm.patchValue({
+      email: 'demo@jysoluciones.tech',
+      password: 'Demo2026!'
+    });
+    this.onSubmit();
   }
 
   public onSubmit(): void {
