@@ -2,6 +2,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { PrismaModule } from './core/prisma/prisma.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { ProformasModule } from './modules/proformas/proformas.module.js';
@@ -9,7 +10,8 @@ import { CustomerModule } from './modules/customers/customers.module.js';
 import { ProductsModule } from './modules/products/products.module.js';
 import { SuppliersModule } from './modules/suppliers/suppliers.module.js';
 import { UsersModule } from './modules/users/users.module.js';
-import { SalesModule } from './modules/sales/sales.module.js'; // <-- Importar aquí
+import { SalesModule } from './modules/sales/sales.module.js';
+import { DemoProtectionGuard } from './core/guards/demo-protection.guard.js';
 
 @Module({
   imports: [
@@ -30,6 +32,12 @@ import { SalesModule } from './modules/sales/sales.module.js'; // <-- Importar a
     SuppliersModule,
     UsersModule,
     SalesModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: DemoProtectionGuard,
+    },
   ],
 })
 export class AppModule { }
