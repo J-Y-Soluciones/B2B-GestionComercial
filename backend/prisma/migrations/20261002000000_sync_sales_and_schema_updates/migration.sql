@@ -1,11 +1,8 @@
 -- CreateEnum
-CREATE TYPE "InvoiceStatus" AS ENUM ('ACCEPTED', 'INTERNAL', 'VOIDED');
+CREATE TYPE "InvoiceStatus" AS ENUM ('PENDING_TRANSMISSION', 'ACCEPTED', 'REJECTED', 'ANULLED');
 
 -- CreateEnum
-CREATE TYPE "InvoiceType" AS ENUM ('BOLETA', 'FACTURA', 'NOTA_VENTA');
-
--- CreateEnum
-CREATE TYPE "PaymentMethod" AS ENUM ('CASH', 'YAPE', 'PLIN', 'TRANSFER', 'CARD');
+CREATE TYPE "PaymentMethod" AS ENUM ('CASH', 'CARD_POS', 'BANK_TRANSFER', 'YAPE_PLIN');
 
 -- AlterTable
 ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;
@@ -52,6 +49,9 @@ CREATE TABLE IF NOT EXISTS "Payment" (
     "saleId" UUID NOT NULL,
     "method" "PaymentMethod" NOT NULL,
     "amount" DECIMAL(12,2) NOT NULL,
+    "receivedAmount" DECIMAL(12,2),
+    "changeAmount" DECIMAL(12,2),
+    "operationCode" VARCHAR(100),
     "reference" VARCHAR(100),
     "createdAt" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -68,6 +68,11 @@ CREATE TABLE IF NOT EXISTS "Invoice" (
     "fullCode" VARCHAR(50) NOT NULL,
     "status" "InvoiceStatus" NOT NULL,
     "hashCpe" TEXT,
+    "externalId" VARCHAR(100),
+    "qrCodeUrl" TEXT,
+    "cdrHash" TEXT,
+    "errorMessage" TEXT,
+    "issuedAt" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdAt" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "Invoice_pkey" PRIMARY KEY ("id")

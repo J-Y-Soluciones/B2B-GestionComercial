@@ -26,6 +26,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             where: { id: userId },
             select: {
                 id: true,
+                role: true,     // <--- Traer rol real de la BD
                 isActive: true,
             },
         });
@@ -38,6 +39,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             throw new UnauthorizedException('La cuenta de usuario ha sido desactivada.');
         }
 
-        return payload;
+        return {
+            ...payload,
+            role: user.role,
+        };
     }
 }

@@ -1,5 +1,3 @@
-//src/modules/sales/infrastructure/controllers/sales.controller.ts
-
 import { Controller, Post, Get, Body, Param, Req, UseGuards } from '@nestjs/common';
 import { SalesService } from '../../application/services/sales.service.js';
 import { CreateSaleDto } from '../../application/dtos/create-sale.dto.js';
@@ -14,17 +12,20 @@ export class SalesController {
     constructor(private readonly salesService: SalesService) { }
 
     @Post()
+    @Roles(Role.ADMIN, Role.MANAGER, Role.SELLER)
     create(@Body() dto: CreateSaleDto, @Req() req: any) {
         const sellerId = req.user.id || req.user.sub;
         return this.salesService.createSale(dto, sellerId);
     }
 
     @Get()
+    @Roles(Role.ADMIN, Role.MANAGER, Role.SELLER)
     findAll() {
         return this.salesService.getAllSales();
     }
 
     @Get(':id')
+    @Roles(Role.ADMIN, Role.MANAGER, Role.SELLER, Role.WAREHOUSE)
     findOne(@Param('id') id: string) {
         return this.salesService.getSaleById(id);
     }

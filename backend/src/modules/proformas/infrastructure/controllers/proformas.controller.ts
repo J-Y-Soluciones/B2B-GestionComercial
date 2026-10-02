@@ -90,4 +90,14 @@ export class ProformaController {
 
         res.end(buffer);
     }
+
+    @Patch(':id/cancel')
+    @Roles(Role.ADMIN, Role.MANAGER, Role.SELLER)
+    async cancel(
+        @Req() req: RequestWithUser,
+        @Param('id', new ParseUUIDPipe()) id: string,
+        @Body('reason') reason?: string,
+    ): Promise<ProformaWithDetails> {
+        return this.proformaService.cancelProforma(id, this.extractUserId(req.user), reason);
+    }
 }

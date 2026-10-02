@@ -25,9 +25,10 @@ describe('JwtStrategy', () => {
         strategy = new JwtStrategy(prisma as unknown as PrismaService);
     });
 
-    it('debe validar y retornar el payload si el usuario existe y está activo', async () => {
+    it('debe validar y retornar el payload con el rol de la base de datos si el usuario existe y está activo', async () => {
         prisma.user.findUnique.mockResolvedValue({
             id: 'user-uuid-1234',
+            role: 'ADMIN',
             isActive: true,
         });
 
@@ -36,13 +37,27 @@ describe('JwtStrategy', () => {
         expect(result).toEqual(mockPayload);
         expect(prisma.user.findUnique).toHaveBeenCalledWith({
             where: { id: 'user-uuid-1234' },
-            select: { id: true, isActive: true },
+            select: { id: true, role: true, isActive: true },
         });
+    });
+
+    it('debe reflejar la degradación de rol inmediatamente anulando los permisos previos del token (H05)', async () => {
+        // El token dice ADMIN, pero en la BD fue degradado a WAREHOUSE
+        prisma.user.findUnique.mockResolvedValue({
+            id: 'user-uuid-1234',
+            role: 'WAREHOUSE',
+            isActive: true,
+        });
+
+        const result = await strategy.validate(mockPayload);
+
+        expect(result.role).toBe('WAREHOUSE');
     });
 
     it('debe lanzar UnauthorizedException si el usuario ha sido desactivado (H05)', async () => {
         prisma.user.findUnique.mockResolvedValue({
             id: 'user-uuid-1234',
+            role: 'ADMIN',
             isActive: false,
         });
 
