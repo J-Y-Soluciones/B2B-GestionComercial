@@ -10,14 +10,6 @@ import type { UpdateProductDto } from '../dtos/update-product.dto.js';
 import type { SetSupplierStockDto } from '../dtos/set-supplier-stock.dto.js';
 import type { SearchProductDto } from '../dtos/search-product.dto.js';
 
-function normalizeText(text: string): string {
-    return text
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .trim();
-}
-
 @Injectable()
 export class ProductService {
     constructor(
