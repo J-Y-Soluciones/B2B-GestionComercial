@@ -23,7 +23,15 @@ export class SalesService {
             throw new BadRequestException('Debe registrar al menos un método de pago.');
         }
 
-        // VALIDACIÓN H02: Validar proforma si la venta proviene de una
+        // VALIDACIÓN H02: Venta directa con Tier 3 prohibida sin proforma aprobada
+        const hasTier3 = dto.items.some((i) => i.priceTier === 3);
+        if (hasTier3 && !dto.proformaId) {
+            throw new BadRequestException(
+                'Las ventas con Precio 3 (mayorista) requieren obligatoriamente de una proforma aprobada por gerencia.',
+            );
+        }
+
+        // VALIDACIÓN H02: Validar proforma vinculada
         if (dto.proformaId) {
             const proforma = await this.prisma.proforma.findUnique({
                 where: { id: dto.proformaId },
@@ -52,12 +60,36 @@ export class SalesService {
             }
         }
 
+        // PROTECCIÓN H01: Obtener precios oficiales del catálogo y recalcular
+        const productIds = dto.items.map((i) => i.productId);
+        const productsInDb = await this.prisma.product.findMany({
+            where: { id: { in: productIds } },
+            include: { priceTiers: true },
+        });
+
+        const productMap = new Map(productsInDb.map((p) => [p.id, p]));
+
         let total = 0;
         const processedItems = dto.items.map((item) => {
-            const lineTotal = Number(item.unitPrice) * item.quantity;
+            const product = productMap.get(item.productId);
+            if (!product) {
+                throw new BadRequestException(`El repuesto con ID ${item.productId} no existe.`);
+            }
+
+            const tierConfig = product.priceTiers.find((t) => t.tier === item.priceTier);
+            if (!tierConfig) {
+                throw new BadRequestException(
+                    `El producto "${product.name}" no tiene configurado el nivel de precio ${item.priceTier}.`,
+                );
+            }
+
+            const officialUnitPrice = Number(tierConfig.price);
+            const lineTotal = Number((officialUnitPrice * item.quantity).toFixed(2));
             total += lineTotal;
+
             return {
                 ...item,
+                unitPrice: officialUnitPrice,
                 costPrice: 0,
                 subtotal: lineTotal,
             };

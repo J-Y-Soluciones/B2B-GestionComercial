@@ -72,11 +72,13 @@ describe('CustomerService', () => {
     });
 
     describe('search', () => {
-        it('debe retornar un array vacio si el término viene vacio o con solo espacios', async () => {
-            const result = await service.search('   ');
+        it('debe ejecutar la busqueda pasando cadena vacía si el término viene en blanco o solo espacios', async () => {
+            vi.mocked(repository.search!).mockResolvedValue([mockCustomer]);
 
-            expect(result).toEqual([]);
-            expect(repository.search).not.toHaveBeenCalled();
+            const result = await service.search('   ', 10);
+
+            expect(result).toEqual([mockCustomer]);
+            expect(repository.search).toHaveBeenCalledWith('', 10);
         });
 
         it('debe ejecutar la busqueda sanitizando espacios al inicio y final', async () => {

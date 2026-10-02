@@ -3,7 +3,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from './../src/app.module.js';
 
-describe('AppController (e2e)', () => {
+describe('App System (e2e)', () => {
   let app: INestApplication;
 
   beforeEach(async () => {
@@ -15,11 +15,10 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
-  it('/ (GET)', () => {
+  it('debe proteger las rutas comerciales y rechazar accesos sin token con 401', () => {
     return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Hello World!');
+      .get('/sales')
+      .expect(401);
   });
 
   afterEach(async () => {

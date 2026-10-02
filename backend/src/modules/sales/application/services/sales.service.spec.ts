@@ -8,8 +8,10 @@ import type { CreateSaleDto } from '../dtos/create-sale.dto.js';
 describe('SalesService', () => {
     let service: SalesService;
     let repository: Partial<ISalesRepository>;
-    let prisma: { proforma: { findUnique: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> } };
-
+    let prisma: {
+        proforma: { findUnique: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> };
+        product: { findMany: ReturnType<typeof vi.fn> };
+    };
     const baseItem = {
         productId: 'b1d03cb4-77bf-4f51-b8ea-b1981775f0a1',
         supplierId: 'c2d03cb4-77bf-4f51-b8ea-b1981775f0a2',
@@ -34,9 +36,60 @@ describe('SalesService', () => {
                 findUnique: vi.fn(),
                 update: vi.fn(),
             },
+            product: {
+                findMany: vi.fn().mockResolvedValue([
+                    {
+                        id: baseItem.productId,
+                        name: 'Filtro de Aceite',
+                        priceTiers: [
+                            { tier: 1, price: 50 },
+                            { tier: 2, price: 45 },
+                            { tier: 3, price: 36 },
+                        ],
+                    },
+                ]),
+            },
         };
 
         service = new SalesService(repository as ISalesRepository, prisma as any);
+    });
+
+    it('debe ignorar el unitPrice enviado por el cliente y recalcular con el catálogo oficial (H01)', async () => {
+        vi.mocked(repository.findCustomerById!).mockResolvedValue({
+            id: 'cust-uuid',
+            documentNumber: '71234567',
+        } as any);
+        vi.mocked(repository.countTotalSales!).mockResolvedValue(1);
+        vi.mocked(repository.countSalesBySeries!).mockResolvedValue(1);
+        vi.mocked(repository.executeSaleTransaction!).mockResolvedValue({ id: 'sale-uuid' } as any);
+
+        // Cliente intenta enviar unitPrice = 0 con pago 0
+        const zeroPriceItem = { ...baseItem, unitPrice: 0 };
+        const dto: CreateSaleDto = {
+            customerId: 'cust-uuid',
+            invoiceType: 'BOLETA',
+            items: [zeroPriceItem],
+            payments: [{ method: 'CASH', amount: 0 }],
+        };
+
+        // Debe fallar por descuadre porque el servidor recalculó al precio real S/ 100.00
+        await expect(service.createSale(dto, 'seller-uuid')).rejects.toThrow(
+            /no coincide con el total de la venta \(S\/ 100.00\)/,
+        );
+    });
+
+    it('debe rechazar ventas directas con nivel 3 si no cuentan con proforma aprobada (H02)', async () => {
+        const tier3Item = { ...baseItem, priceTier: 3 };
+        const dto: CreateSaleDto = {
+            customerId: 'cust-uuid',
+            invoiceType: 'BOLETA',
+            items: [tier3Item],
+            payments: [{ method: 'CASH', amount: 72 }],
+        };
+
+        await expect(service.createSale(dto, 'seller-uuid')).rejects.toThrow(
+            'Las ventas con Precio 3 (mayorista) requieren obligatoriamente de una proforma aprobada por gerencia.',
+        );
     });
 
     it('debe lanzar BadRequestException si la venta no contiene ítems', async () => {
@@ -87,7 +140,8 @@ describe('SalesService', () => {
             documentNumber: '00000000', // Cliente mostrador / comodín
         } as any);
 
-        const expensiveItem = { ...baseItem, quantity: 1, unitPrice: 750 }; // Total = S/ 750.00
+        // 15 unidades a S/ 50.00 del catálogo oficial = S/ 750.00
+        const expensiveItem = { ...baseItem, quantity: 15 };
 
         const dto: CreateSaleDto = {
             customerId: 'cust-uuid',
