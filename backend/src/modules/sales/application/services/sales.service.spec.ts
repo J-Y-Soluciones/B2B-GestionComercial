@@ -8,6 +8,7 @@ import type { CreateSaleDto } from '../dtos/create-sale.dto.js';
 describe('SalesService', () => {
     let service: SalesService;
     let repository: Partial<ISalesRepository>;
+    let prisma: { proforma: { findUnique: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn> } };
 
     const baseItem = {
         productId: 'b1d03cb4-77bf-4f51-b8ea-b1981775f0a1',
@@ -28,7 +29,14 @@ describe('SalesService', () => {
             cancelSale: vi.fn(),
         };
 
-        service = new SalesService(repository as ISalesRepository);
+        prisma = {
+            proforma: {
+                findUnique: vi.fn(),
+                update: vi.fn(),
+            },
+        };
+
+        service = new SalesService(repository as ISalesRepository, prisma as any);
     });
 
     it('debe lanzar BadRequestException si la venta no contiene ítems', async () => {
@@ -90,6 +98,26 @@ describe('SalesService', () => {
 
         await expect(service.createSale(dto, 'seller-uuid')).rejects.toThrow(
             /Por disposición de SUNAT, las Boletas por montos mayores o iguales a S\/ 700.00/,
+        );
+    });
+
+    it('debe lanzar BadRequestException si la proforma está en PENDING_APPROVAL', async () => {
+        prisma.proforma.findUnique.mockResolvedValue({
+            id: 'prof-uuid',
+            status: 'PENDING_APPROVAL',
+            expiresAt: new Date(Date.now() + 100000),
+        });
+
+        const dto: CreateSaleDto = {
+            proformaId: 'prof-uuid',
+            customerId: 'cust-uuid',
+            invoiceType: 'BOLETA',
+            items: [baseItem],
+            payments: [{ method: 'CASH', amount: 100 }],
+        };
+
+        await expect(service.createSale(dto, 'seller-uuid')).rejects.toThrow(
+            'No se puede procesar la venta: la proforma está pendiente de aprobación gerencial.',
         );
     });
 

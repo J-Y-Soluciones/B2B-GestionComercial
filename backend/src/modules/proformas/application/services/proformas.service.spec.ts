@@ -6,11 +6,13 @@ import type { IProformaRepository, ProformaWithDetails } from '../../domain/repo
 import { ProformaStatus, CustomerType } from '@prisma/client';
 import { ProformaPdfService } from './proforma-pdf.service.js';
 import { Decimal } from '@prisma/client/runtime/library';
+import type { PrismaService } from '../../../../core/prisma/prisma.service.js';
 
 describe('ProformaService', () => {
     let service: ProformaService;
     let repository: Partial<IProformaRepository>;
     let pdfService: Partial<ProformaPdfService>;
+    let prisma: { product: { findMany: ReturnType<typeof vi.fn> } };
 
     const now = new Date();
 
@@ -44,6 +46,7 @@ describe('ProformaService', () => {
                 id: 'd1eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
                 proformaId: '7b544327-0cf1-450f-a3e9-a787201fa381',
                 productId: 'e1eebc99-9c0b-4ef8-bb6d-6bb9bd380a44',
+                supplierId: 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a55',
                 quantity: 2,
                 unitPrice: new Decimal(75.0),
                 priceTier: 3,
@@ -54,6 +57,7 @@ describe('ProformaService', () => {
                     name: 'Disco de Freno',
                     category: 'Frenos',
                     brand: 'Bosch',
+                    imageUrl: null, // Soluciona error TS2741
                     minStock: 5,
                     isActive: true,
                     createdAt: now,
@@ -74,9 +78,16 @@ describe('ProformaService', () => {
         pdfService = {
             generate: vi.fn(),
         };
+        prisma = {
+            product: {
+                findMany: vi.fn(),
+            },
+        };
+
         service = new ProformaService(
             repository as IProformaRepository,
             pdfService as ProformaPdfService,
+            prisma as unknown as PrismaService, // Soluciona error TS2554
         );
     });
 
@@ -85,13 +96,27 @@ describe('ProformaService', () => {
             vi.mocked(repository.getNextSequenceCode!).mockResolvedValue('PROF-2026-0001');
             vi.mocked(repository.create!).mockResolvedValue(mockProformaPendingApproval);
 
+            // Mock de los productos en base de datos con sus priceTiers oficiales
+            prisma.product.findMany.mockResolvedValue([
+                {
+                    id: 'e1eebc99-9c0b-4ef8-bb6d-6bb9bd380a44',
+                    name: 'Disco de Freno',
+                    isActive: true,
+                    priceTiers: [
+                        { tier: 1, price: new Decimal(100.0) },
+                        { tier: 2, price: new Decimal(90.0) },
+                        { tier: 3, price: new Decimal(75.0) },
+                    ],
+                },
+            ]);
+
             const dto = {
                 customerId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
                 items: [
                     {
                         productId: 'e1eebc99-9c0b-4ef8-bb6d-6bb9bd380a44',
                         quantity: 2,
-                        unitPrice: 75.0,
+                        unitPrice: 0, // Probamos que ignore 0 y use el autorizado
                         priceTier: 3,
                     },
                 ],
@@ -115,6 +140,19 @@ describe('ProformaService', () => {
                 ...mockProformaPendingApproval,
                 status: ProformaStatus.PENDING,
             });
+
+            prisma.product.findMany.mockResolvedValue([
+                {
+                    id: 'e1eebc99-9c0b-4ef8-bb6d-6bb9bd380a44',
+                    name: 'Disco de Freno',
+                    isActive: true,
+                    priceTiers: [
+                        { tier: 1, price: new Decimal(100.0) },
+                        { tier: 2, price: new Decimal(90.0) },
+                        { tier: 3, price: new Decimal(75.0) },
+                    ],
+                },
+            ]);
 
             const dto = {
                 customerId: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',

@@ -1,14 +1,17 @@
 // backend/src/modules/sales/application/services/sales.service.ts
-import { Injectable, Inject, BadRequestException } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException, NotFoundException } from '@nestjs/common';
 import { SALES_REPOSITORY } from '../../domain/repositories/sales.repository.interface.js';
 import type { ISalesRepository } from '../../domain/repositories/sales.repository.interface.js';
 import type { CreateSaleDto } from '../dtos/create-sale.dto.js';
+import { PrismaService } from '../../../../core/prisma/prisma.service.js';
+import { ProformaStatus } from '@prisma/client';
 
 @Injectable()
 export class SalesService {
     constructor(
         @Inject(SALES_REPOSITORY)
         private readonly salesRepo: ISalesRepository,
+        private readonly prisma: PrismaService,
     ) { }
 
     async createSale(dto: CreateSaleDto, sellerId: string) {
@@ -18,6 +21,35 @@ export class SalesService {
 
         if (!dto.payments || dto.payments.length === 0) {
             throw new BadRequestException('Debe registrar al menos un método de pago.');
+        }
+
+        // VALIDACIÓN H02: Validar proforma si la venta proviene de una
+        if (dto.proformaId) {
+            const proforma = await this.prisma.proforma.findUnique({
+                where: { id: dto.proformaId },
+            });
+
+            if (!proforma) {
+                throw new NotFoundException('La proforma referenciada no existe.');
+            }
+
+            if (proforma.status === ProformaStatus.PENDING_APPROVAL) {
+                throw new BadRequestException(
+                    'No se puede procesar la venta: la proforma está pendiente de aprobación gerencial.',
+                );
+            }
+
+            if (proforma.status === ProformaStatus.REJECTED) {
+                throw new BadRequestException('No se puede procesar la venta: la proforma ha sido rechazada.');
+            }
+
+            if (proforma.status === ProformaStatus.CONVERTED) {
+                throw new BadRequestException('Esta proforma ya fue convertida a venta previamente.');
+            }
+
+            if (proforma.expiresAt && new Date(proforma.expiresAt) < new Date()) {
+                throw new BadRequestException('La proforma ha caducado (vigencia máxima de 48 horas superada).');
+            }
         }
 
         let total = 0;
@@ -78,7 +110,7 @@ export class SalesService {
         const invoiceStatus = isFiscal ? 'ACCEPTED' : 'INTERNAL';
         const hashCpe = isFiscal ? `HASH-${Date.now()}` : null;
 
-        return this.salesRepo.executeSaleTransaction({
+        const result = await this.salesRepo.executeSaleTransaction({
             code,
             proformaId: dto.proformaId,
             customerId: dto.customerId,
@@ -98,6 +130,16 @@ export class SalesService {
                 hashCpe,
             },
         });
+
+        // Actualizar estado de la proforma a CONVERTED
+        if (dto.proformaId) {
+            await this.prisma.proforma.update({
+                where: { id: dto.proformaId },
+                data: { status: ProformaStatus.CONVERTED },
+            });
+        }
+
+        return result;
     }
 
     async getAllSales() {
