@@ -7,7 +7,7 @@ import { ApprovalsKpisComponent } from './components/approvals-kpis.component';
 import { ApprovalsTableComponent } from './components/approvals-table.component';
 import { ApprovalsDetailPanelComponent } from './components/approvals-detail-panel.component';
 import { ApprovalsRejectModalComponent } from './components/approvals-reject-modal.component';
-import { environment } from '../../../environments/environment';
+import { environment } from '../../../environments/environment.development';
 
 export interface ProformaDetailDto {
   id: string;
