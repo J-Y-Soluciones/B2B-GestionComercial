@@ -4,6 +4,21 @@ CREATE TYPE "InvoiceStatus" AS ENUM ('PENDING_TRANSMISSION', 'ACCEPTED', 'REJECT
 -- CreateEnum
 CREATE TYPE "PaymentMethod" AS ENUM ('CASH', 'CARD_POS', 'BANK_TRANSFER', 'YAPE_PLIN');
 
+-- CreateEnum
+CREATE TYPE "InvoiceStatus" AS ENUM ('PENDING_TRANSMISSION', 'ACCEPTED', 'REJECTED', 'ANULLED');
+
+-- CreateEnum
+CREATE TYPE "InvoiceType" AS ENUM ('BOLETA', 'FACTURA', 'NOTA_VENTA');
+
+-- CreateEnum
+CREATE TYPE "PaymentMethod" AS ENUM ('CASH', 'CARD_POS', 'BANK_TRANSFER', 'YAPE_PLIN');
+
+-- AlterTable
+ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;
+
+-- AlterTable
+ALTER TABLE "ProformaDetail" ADD COLUMN IF NOT EXISTS "supplierId" UUID;
+
 -- AlterTable
 ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT;
 

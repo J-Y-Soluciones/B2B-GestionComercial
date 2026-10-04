@@ -241,9 +241,7 @@ export class CheckoutComponent implements OnInit {
         this.clearCheckoutView();
       },
       error: (err) => {
-        // Rompe el bloqueo visual aunque el backend rechace la orden
-        this.toast.show(err.error?.message || 'Operación retirada del mostrador.', 'info');
-        this.clearCheckoutView();
+        this.toast.show(err.error?.message || 'No se pudo descartar la proforma en el servidor.', 'error');
       }
     });
   }

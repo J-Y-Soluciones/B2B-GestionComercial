@@ -23,7 +23,7 @@ export class SalesService {
             throw new BadRequestException('Debe registrar al menos un método de pago.');
         }
 
-        // VALIDACIÓN H02: Venta directa con Tier 3 prohibida sin proforma aprobada
+        // VALIDACIÓN H02: Venta directa con Tier 3 prohibida sin proforma previa
         const hasTier3 = dto.items.some((i) => i.priceTier === 3);
         if (hasTier3 && !dto.proformaId) {
             throw new BadRequestException(
@@ -31,7 +31,7 @@ export class SalesService {
             );
         }
 
-        // VALIDACIÓN H02: Validar proforma vinculada
+        // VALIDACIÓN H02: Validar estado y vigencia de la proforma
         if (dto.proformaId) {
             const proforma = await this.prisma.proforma.findUnique({
                 where: { id: dto.proformaId },
@@ -39,6 +39,13 @@ export class SalesService {
 
             if (!proforma) {
                 throw new NotFoundException('La proforma referenciada no existe.');
+            }
+
+            // H02: Si la venta incluye Tier 3, la proforma DEBE estar en APPROVED (no basta con PENDING)
+            if (hasTier3 && proforma.status !== ProformaStatus.APPROVED) {
+                throw new BadRequestException(
+                    'Para procesar una venta con Precio 3, la proforma debe contar con aprobación gerencial previa (APPROVED).',
+                );
             }
 
             if (proforma.status === ProformaStatus.PENDING_APPROVAL) {
@@ -60,7 +67,7 @@ export class SalesService {
             }
         }
 
-        // PROTECCIÓN H01: Obtener precios oficiales del catálogo y recalcular
+        // PROTECCIÓN H01 & H08: Obtener precios oficiales y validar que estén activos
         const productIds = dto.items.map((i) => i.productId);
         const productsInDb = await this.prisma.product.findMany({
             where: { id: { in: productIds } },
@@ -74,6 +81,11 @@ export class SalesService {
             const product = productMap.get(item.productId);
             if (!product) {
                 throw new BadRequestException(`El repuesto con ID ${item.productId} no existe.`);
+            }
+
+            // H08: Bloqueo de productos inactivos en ventas
+            if (!product.isActive) {
+                throw new BadRequestException(`El producto "${product.name}" se encuentra inactivo y no puede ser vendido.`);
             }
 
             const tierConfig = product.priceTiers.find((t) => t.tier === item.priceTier);
