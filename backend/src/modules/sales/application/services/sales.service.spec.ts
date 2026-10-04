@@ -41,6 +41,7 @@ describe('SalesService', () => {
                     {
                         id: baseItem.productId,
                         name: 'Filtro de Aceite',
+                        isActive: true,
                         priceTiers: [
                             { tier: 1, price: 50 },
                             { tier: 2, price: 45 },
@@ -172,6 +173,48 @@ describe('SalesService', () => {
 
         await expect(service.createSale(dto, 'seller-uuid')).rejects.toThrow(
             'No se puede procesar la venta: la proforma está pendiente de aprobación gerencial.',
+        );
+    });
+
+    it('debe rechazar la venta si incluye Precio 3 pero la proforma asociada no está APPROVED (H02)', async () => {
+        prisma.proforma.findUnique.mockResolvedValue({
+            id: 'prof-tier1',
+            status: 'PENDING', // Proforma común no aprobada
+            expiresAt: new Date(Date.now() + 100000),
+        });
+
+        const dto: CreateSaleDto = {
+            proformaId: 'prof-tier1',
+            customerId: 'cust-uuid',
+            invoiceType: 'BOLETA',
+            items: [{ ...baseItem, priceTier: 3 }],
+            payments: [{ method: 'CASH', amount: 72 }],
+        };
+
+        await expect(service.createSale(dto, 'seller-uuid')).rejects.toThrow(
+            'Para procesar una venta con Precio 3, la proforma debe contar con aprobación gerencial previa (APPROVED).',
+        );
+    });
+
+    it('debe rechazar la venta directa si el producto está marcado como inactivo (H08)', async () => {
+        prisma.product.findMany.mockResolvedValue([
+            {
+                id: baseItem.productId,
+                name: 'Filtro Descontinuado',
+                isActive: false, // Producto inactivo
+                priceTiers: [{ tier: 1, price: 50 }],
+            },
+        ]);
+
+        const dto: CreateSaleDto = {
+            customerId: 'cust-uuid',
+            invoiceType: 'BOLETA',
+            items: [baseItem],
+            payments: [{ method: 'CASH', amount: 100 }],
+        };
+
+        await expect(service.createSale(dto, 'seller-uuid')).rejects.toThrow(
+            /se encuentra inactivo y no puede ser vendido/,
         );
     });
 

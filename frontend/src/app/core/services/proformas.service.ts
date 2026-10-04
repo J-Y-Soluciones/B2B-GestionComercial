@@ -64,7 +64,7 @@ export class ProformasService {
     }
 
     cancelProforma(id: string, reason = 'Desistimiento de compra en mostrador'): Observable<ProformaDto> {
-        return this.http.patch<ProformaDto>(`${this.API_URL}/${id}/reject`, { reason });
+        return this.http.patch<ProformaDto>(`${this.API_URL}/${id}/cancel`, { reason });
     }
 
     refreshPendingCount(): void {
