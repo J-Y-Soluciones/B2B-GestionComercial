@@ -1,54 +1,63 @@
 // backend/src/modules/products/application/dtos/update-product.dto.ts
 import {
-    IsString,
-    IsOptional,
-    IsInt,
-    IsBoolean,
-    IsArray,
-    ValidateNested,
-    Min,
-    MaxLength,
+  IsString,
+  IsOptional,
+  IsInt,
+  IsBoolean,
+  IsArray,
+  ValidateNested,
+  Min,
+  MaxLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PriceTierItemDto } from './create-product.dto.js';
 
 export class UpdateProductDto {
-    @IsString()
-    @IsOptional()
-    @MaxLength(50)
-    internalCode?: string;
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  internalCode?: string;
 
-    @IsString()
-    @IsOptional()
-    @MaxLength(255)
-    name?: string;
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  barcode?: string;
 
-    @IsString()
-    @IsOptional()
-    @MaxLength(100)
-    category?: string;
+  @IsBoolean()
+  @IsOptional()
+  isTaxable?: boolean;
 
-    @IsString()
-    @IsOptional()
-    @MaxLength(100)
-    brand?: string;
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  name?: string;
 
-    @IsString()
-    @IsOptional()
-    imageUrl?: string;
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  category?: string;
 
-    @IsInt()
-    @Min(0)
-    @IsOptional()
-    minStock?: number;
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  brand?: string;
 
-    @IsBoolean()
-    @IsOptional()
-    isActive?: boolean;
+  @IsString()
+  @IsOptional()
+  imageUrl?: string;
 
-    @IsArray()
-    @IsOptional()
-    @ValidateNested({ each: true })
-    @Type(() => PriceTierItemDto)
-    priceTiers?: PriceTierItemDto[];
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  minStock?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => PriceTierItemDto)
+  priceTiers?: PriceTierItemDto[];
 }

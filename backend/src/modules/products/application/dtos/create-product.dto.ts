@@ -1,93 +1,102 @@
 // backend/src/modules/products/application/dtos/create-product.dto.ts
 import {
-    IsString,
-    IsNotEmpty,
-    IsInt,
-    IsPositive,
-    IsOptional,
-    IsBoolean,
-    IsArray,
-    ValidateNested,
-    ArrayMinSize,
-    Min,
-    IsNumber,
-    IsUUID,
-    MaxLength,
+  IsString,
+  IsNotEmpty,
+  IsInt,
+  IsPositive,
+  IsOptional,
+  IsBoolean,
+  IsArray,
+  ValidateNested,
+  ArrayMinSize,
+  Min,
+  IsNumber,
+  IsUUID,
+  MaxLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class PriceTierItemDto {
-    @IsInt()
-    @Min(1)
-    tier!: number;
+  @IsInt()
+  @Min(1)
+  tier!: number;
 
-    @IsNumber({ maxDecimalPlaces: 2 })
-    @IsPositive()
-    price!: number;
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @IsPositive()
+  price!: number;
 }
 
 export class InitialStockItemDto {
-    @IsUUID('4')
-    @IsNotEmpty()
-    supplierId!: string;
+  @IsUUID('4')
+  @IsNotEmpty()
+  supplierId!: string;
 
-    @IsString()
-    @IsOptional()
-    @MaxLength(100)
-    supplierSku?: string;
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  supplierSku?: string;
 
-    @IsInt()
-    @Min(0)
-    stock!: number;
+  @IsInt()
+  @Min(0)
+  stock!: number;
 
-    @IsNumber({ maxDecimalPlaces: 2 })
-    @IsPositive()
-    costPrice!: number;
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @IsPositive()
+  costPrice!: number;
 }
 
 export class CreateProductDto {
-    @IsString()
-    @IsNotEmpty()
-    @MaxLength(50)
-    internalCode!: string;
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(50)
+  internalCode!: string;
 
-    @IsString()
-    @IsNotEmpty()
-    @MaxLength(255)
-    name!: string;
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  barcode?: string;
 
-    @IsString()
-    @IsNotEmpty()
-    @MaxLength(100)
-    category!: string;
+  @IsBoolean()
+  @IsOptional()
+  isTaxable?: boolean;
 
-    @IsString()
-    @IsNotEmpty()
-    @MaxLength(100)
-    brand!: string;
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  name!: string;
 
-    @IsString()
-    @IsOptional()
-    imageUrl?: string;
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  category!: string;
 
-    @IsInt()
-    @Min(0)
-    @IsOptional()
-    minStock?: number;
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
+  brand!: string;
 
-    @IsBoolean()
-    @IsOptional()
-    isActive?: boolean;
+  @IsString()
+  @IsOptional()
+  imageUrl?: string;
 
-    @IsArray()
-    @ArrayMinSize(1, { message: 'Debe configurar al menos un nivel de precio' })
-    @ValidateNested({ each: true })
-    @Type(() => PriceTierItemDto)
-    priceTiers!: PriceTierItemDto[];
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  minStock?: number;
 
-    @IsArray()
-    @IsOptional()
-    @ValidateNested({ each: true })
-    @Type(() => InitialStockItemDto)
-    stocks?: InitialStockItemDto[];
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
+
+  @IsArray()
+  @ArrayMinSize(1, { message: 'Debe configurar al menos un nivel de precio' })
+  @ValidateNested({ each: true })
+  @Type(() => PriceTierItemDto)
+  priceTiers!: PriceTierItemDto[];
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => InitialStockItemDto)
+  stocks?: InitialStockItemDto[];
 }

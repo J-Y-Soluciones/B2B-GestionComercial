@@ -74,4 +74,10 @@ export class ProductController {
     ) {
         return this.productService.setSupplierStock(id, dto);
     }
+
+    @Get('by-barcode/:barcode')
+    @Roles(Role.ADMIN, Role.MANAGER, Role.SELLER, Role.WAREHOUSE)
+    async findByBarcode(@Param('barcode') barcode: string) {
+        return this.productService.findByBarcode(barcode);
+    }
 }

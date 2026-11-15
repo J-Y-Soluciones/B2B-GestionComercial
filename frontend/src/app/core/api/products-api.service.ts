@@ -6,55 +6,66 @@ import type { Product, ProductSearchFilters } from '../models/product.model';
 import { environment } from '../../../environments/environment.development';
 
 @Injectable({
-    providedIn: 'root',
+  providedIn: 'root',
 })
 export class ProductsApiService {
-    private readonly http = inject(HttpClient);
-    private readonly baseUrl = `${environment.apiUrl}/products`;
+  private readonly http = inject(HttpClient);
+  private readonly baseUrl = `${environment.apiUrl}/products`;
 
-    readonly isSearching = signal<boolean>(false);
-    readonly searchResults = signal<Product[]>([]);
+  readonly isSearching = signal<boolean>(false);
+  readonly searchResults = signal<Product[]>([]);
 
-    search(filters: ProductSearchFilters): Observable<Product[]> {
-        this.isSearching.set(true);
-        let params = new HttpParams();
+  search(filters: ProductSearchFilters): Observable<Product[]> {
+    this.isSearching.set(true);
+    let params = new HttpParams();
 
-        if (filters.query?.trim()) params = params.set('query', filters.query.trim());
-        if (filters.category?.trim() && filters.category !== 'Todas' && filters.category !== 'Todas las Líneas') {
-            params = params.set('category', filters.category.trim());
-        }
-        if (filters.brand?.trim()) params = params.set('brand', filters.brand.trim());
-        if (filters.inStock !== undefined) params = params.set('inStock', filters.inStock.toString());
-        if (filters.limit) params = params.set('limit', filters.limit.toString());
-
-        return this.http.get<Product[]>(`${this.baseUrl}/search`, { params }).pipe(
-            tap({
-                next: (results) => {
-                    this.searchResults.set(results);
-                    this.isSearching.set(false);
-                },
-                error: () => this.isSearching.set(false),
-            }),
-        );
+    if (filters.query?.trim()) params = params.set('query', filters.query.trim());
+    if (
+      filters.category?.trim() &&
+      filters.category !== 'Todas' &&
+      filters.category !== 'Todas las Líneas'
+    ) {
+      params = params.set('category', filters.category.trim());
     }
+    if (filters.brand?.trim()) params = params.set('brand', filters.brand.trim());
+    if (filters.inStock !== undefined) params = params.set('inStock', filters.inStock.toString());
+    if (filters.limit) params = params.set('limit', filters.limit.toString());
 
-    findByCode(code: string): Observable<Product> {
-        return this.http.get<Product>(`${this.baseUrl}/by-code/${code}`);
-    }
+    return this.http.get<Product[]>(`${this.baseUrl}/search`, { params }).pipe(
+      tap({
+        next: (results) => {
+          this.searchResults.set(results);
+          this.isSearching.set(false);
+        },
+        error: () => this.isSearching.set(false),
+      }),
+    );
+  }
 
-    findById(id: string): Observable<Product> {
-        return this.http.get<Product>(`${this.baseUrl}/${id}`);
-    }
+  findByCode(code: string): Observable<Product> {
+    return this.http.get<Product>(`${this.baseUrl}/by-code/${code}`);
+  }
 
-    setSupplierStock(productId: string, payload: { supplierId: string; supplierSku?: string | null; stock: number; costPrice: number }): Observable<Product> {
-        return this.http.put<Product>(`${this.baseUrl}/${productId}/stock`, payload);
-    }
+  findById(id: string): Observable<Product> {
+    return this.http.get<Product>(`${this.baseUrl}/${id}`);
+  }
 
-    create(payload: any): Observable<Product> {
-        return this.http.post<Product>(this.baseUrl, payload);
-    }
+  setSupplierStock(
+    productId: string,
+    payload: { supplierId: string; supplierSku?: string | null; stock: number; costPrice: number },
+  ): Observable<Product> {
+    return this.http.put<Product>(`${this.baseUrl}/${productId}/stock`, payload);
+  }
 
-    update(id: string, payload: any): Observable<Product> {
-        return this.http.patch<Product>(`${this.baseUrl}/${id}`, payload);
-    }
+  create(payload: any): Observable<Product> {
+    return this.http.post<Product>(this.baseUrl, payload);
+  }
+
+  update(id: string, payload: any): Observable<Product> {
+    return this.http.patch<Product>(`${this.baseUrl}/${id}`, payload);
+  }
+
+  findByBarcode(barcode: string): Observable<Product> {
+    return this.http.get<Product>(`${this.baseUrl}/by-barcode/${barcode}`);
+  }
 }

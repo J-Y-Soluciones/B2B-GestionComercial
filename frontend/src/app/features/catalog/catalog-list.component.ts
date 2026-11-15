@@ -10,7 +10,10 @@ import { CatalogKpisComponent } from './components/catalog-kpis.component';
 import { CatalogFiltersComponent, type CategoryLine } from './components/catalog-filters.component';
 import { CatalogTableComponent } from './components/catalog-table.component';
 import { StockModalComponent, type UpdateStockEvent } from './components/stock-modal.component';
-import { ProductFormModalComponent, type ProductFormData } from './components/product-form-modal.component';
+import {
+  ProductFormModalComponent,
+  type ProductFormData,
+} from './components/product-form-modal.component';
 import type { Product } from '../../core/models/product.model';
 
 @Component({
@@ -23,35 +26,39 @@ import type { Product } from '../../core/models/product.model';
     CatalogFiltersComponent,
     CatalogTableComponent,
     StockModalComponent,
-    ProductFormModalComponent
+    ProductFormModalComponent,
   ],
   template: `
     <div class="space-y-4 sm:space-y-5 font-sans">
-      <app-catalog-header 
-        [canManage]="canManageStock()" 
-        (refresh)="loadProducts()" 
-        (create)="openCreateModal()" />
+      <app-catalog-header
+        [canManage]="canManageStock()"
+        (refresh)="loadProducts()"
+        (create)="openCreateModal()"
+      />
 
-      <app-catalog-kpis 
-        [totalProducts]="products().length" 
-        [totalUnits]="totalUnitsStock()" 
-        [suppliersCount]="suppliers().length" 
-        [lowStockCount]="lowStockCount()" />
+      <app-catalog-kpis
+        [totalProducts]="products().length"
+        [totalUnits]="totalUnitsStock()"
+        [suppliersCount]="suppliers().length"
+        [lowStockCount]="lowStockCount()"
+      />
 
-      <app-catalog-filters 
-        [categories]="categoryLines()" 
-        [selectedCategory]="selectedCategory()" 
-        [searchQuery]="searchQuery()" 
-        [totalFiltered]="filteredProducts().length" 
-        (categoryChange)="selectedCategory.set($event)" 
-        (searchChange)="searchQuery.set($event)" />
+      <app-catalog-filters
+        [categories]="categoryLines()"
+        [selectedCategory]="selectedCategory()"
+        [searchQuery]="searchQuery()"
+        [totalFiltered]="filteredProducts().length"
+        (categoryChange)="selectedCategory.set($event)"
+        (searchChange)="searchQuery.set($event)"
+      />
 
-      <app-catalog-table 
-        [products]="filteredProducts()" 
-        [isLoading]="isLoading()" 
-        [canManage]="canManageStock()" 
-        (openStock)="selectedProductForStock.set($event)" 
-        (openEdit)="openEditModal($event)" />
+      <app-catalog-table
+        [products]="filteredProducts()"
+        [isLoading]="isLoading()"
+        [canManage]="canManageStock()"
+        (openStock)="selectedProductForStock.set($event)"
+        (openEdit)="openEditModal($event)"
+      />
 
       @if (selectedProductForStock()) {
         <app-stock-modal
@@ -60,20 +67,22 @@ import type { Product } from '../../core/models/product.model';
           [canManage]="canManageStock()"
           [isSaving]="isSavingStock()"
           (close)="selectedProductForStock.set(null)"
-          (save)="handleStockUpdate($event)" />
+          (save)="handleStockUpdate($event)"
+        />
       }
 
       @if (isProductModalOpen()) {
         <app-product-form-modal
           [product]="selectedProductForEdit()"
-          [categories]="formCategories"
+          [categories]="dynamicFormCategories()"
           [suppliers]="suppliers()"
           [isSaving]="isSavingProduct()"
           (close)="closeProductModal()"
-          (save)="handleProductSave($event)" />
+          (save)="handleProductSave($event)"
+        />
       }
     </div>
-  `
+  `,
 })
 export class CatalogListComponent implements OnInit {
   private readonly productsApi = inject(ProductsApiService);
@@ -89,7 +98,15 @@ export class CatalogListComponent implements OnInit {
 
   searchQuery = signal('');
   selectedCategory = signal('Todas las Líneas');
-  formCategories = ['Frenos', 'Suspensión & Dirección', 'Motor & Culata', 'Filtros & Lubricantes', 'Transmisión & Embrague', 'Sistema Eléctrico'];
+
+  baseCategories = [
+    'Frenos',
+    'Suspensión & Dirección',
+    'Motor & Culata',
+    'Filtros & Lubricantes',
+    'Transmisión & Embrague',
+    'Sistema Eléctrico',
+  ];
 
   selectedProductForStock = signal<Product | null>(null);
   selectedProductForEdit = signal<Product | null>(null);
@@ -100,16 +117,23 @@ export class CatalogListComponent implements OnInit {
     return role === 'ADMIN' || role === 'MANAGER' || role === 'WAREHOUSE';
   });
 
+  dynamicFormCategories = computed(() => {
+    const fromDb = this.products()
+      .map((p) => p.category?.trim())
+      .filter((c): c is string => Boolean(c));
+    return Array.from(new Set([...this.baseCategories, ...fromDb]));
+  });
+
   categoryLines = computed<CategoryLine[]>(() => {
     const all = this.products();
-    const countByCat = (c: string) => all.filter(p => p.category === c).length;
+    const uniqueCats = this.dynamicFormCategories();
+
     return [
       { name: 'Todas las Líneas', count: all.length },
-      { name: 'Frenos', count: countByCat('Frenos') },
-      { name: 'Suspensión & Dirección', count: countByCat('Suspensión & Dirección') },
-      { name: 'Motor & Culata', count: countByCat('Motor & Culata') },
-      { name: 'Filtros & Lubricantes', count: countByCat('Filtros & Lubricantes') },
-      { name: 'Transmisión & Embrague', count: countByCat('Transmisión & Embrague') },
+      ...uniqueCats.map((cat) => ({
+        name: cat,
+        count: all.filter((p) => p.category === cat).length,
+      })),
     ];
   });
 
@@ -118,16 +142,22 @@ export class CatalogListComponent implements OnInit {
     const cat = this.selectedCategory();
     return this.products().filter((p) => {
       const matchCat = cat === 'Todas las Líneas' || p.category === cat;
-      const matchQuery = !query ||
+      const matchQuery =
+        !query ||
         p.name.toLowerCase().includes(query) ||
         p.internalCode.toLowerCase().includes(query) ||
-        p.brand.toLowerCase().includes(query);
+        p.brand.toLowerCase().includes(query) ||
+        (p.barcode && p.barcode.toLowerCase().includes(query));
       return matchCat && matchQuery;
     });
   });
 
-  totalUnitsStock = computed(() => this.products().reduce((acc, p) => acc + (p.totalStock || 0), 0));
-  lowStockCount = computed(() => this.products().filter((p) => (p.totalStock || 0) <= (p.minStock || 5)).length);
+  totalUnitsStock = computed(() =>
+    this.products().reduce((acc, p) => acc + (p.totalStock || 0), 0),
+  );
+  lowStockCount = computed(
+    () => this.products().filter((p) => (p.totalStock || 0) <= (p.minStock || 5)).length,
+  );
 
   @HostListener('window:keydown', ['$event'])
   handleShortcuts(event: KeyboardEvent): void {
@@ -152,7 +182,7 @@ export class CatalogListComponent implements OnInit {
         this.products.set(res);
         this.isLoading.set(false);
       },
-      error: () => this.isLoading.set(false)
+      error: () => this.isLoading.set(false),
     });
   }
 
@@ -160,7 +190,7 @@ export class CatalogListComponent implements OnInit {
     if (!this.canManageStock()) return;
     this.suppliersApi.getAll().subscribe({
       next: (res) => this.suppliers.set(res),
-      error: () => { }
+      error: () => {},
     });
   }
 
@@ -194,7 +224,7 @@ export class CatalogListComponent implements OnInit {
       error: (err) => {
         this.isSavingStock.set(false);
         this.toast.show(err?.error?.message || 'Error al actualizar existencias.', 'error');
-      }
+      },
     });
   }
 
@@ -203,20 +233,19 @@ export class CatalogListComponent implements OnInit {
 
     const payload: any = {
       internalCode: data.internalCode.trim().toUpperCase(),
+      barcode: data.barcode?.trim() || undefined,
+      isTaxable: data.isTaxable,
       name: data.name.trim(),
       brand: data.brand.trim(),
-      category: data.category,
+      category: data.category.trim(),
       imageUrl: data.imageUrl?.trim() ? data.imageUrl.trim() : undefined,
       minStock: Number(data.minStock),
       priceTiers: [
         { tier: 1, price: Number(data.tier1Price) },
         { tier: 2, price: Number(data.tier2Price) },
-        { tier: 3, price: Number(data.tier3Price) }
-      ]
+        { tier: 3, price: Number(data.tier3Price) },
+      ],
     };
-    console.log('--- DIAGNÓSTICO IMAGEURL ---');
-    console.log('1. DATA RECIBIDA DEL MODAL:', data.imageUrl);
-    console.log('2. PAYLOAD FINAL A ENVIAR:', payload.imageUrl);
 
     if (!editing && data.initialSupplierId) {
       payload.stocks = [
@@ -224,8 +253,8 @@ export class CatalogListComponent implements OnInit {
           supplierId: data.initialSupplierId,
           supplierSku: data.initialSku?.trim() || undefined,
           stock: Number(data.initialStock) || 0,
-          costPrice: Number(data.initialCostPrice) || 0
-        }
+          costPrice: Number(data.initialCostPrice) || 0,
+        },
       ];
     }
 
@@ -238,8 +267,10 @@ export class CatalogListComponent implements OnInit {
       next: () => {
         this.isSavingProduct.set(false);
         this.toast.show(
-          editing ? `Repuesto "${data.name}" actualizado.` : `Repuesto "${data.name}" registrado con éxito.`,
-          'success'
+          editing
+            ? `Repuesto "${data.name}" actualizado.`
+            : `Repuesto "${data.name}" registrado con éxito.`,
+          'success',
         );
         this.closeProductModal();
         this.loadProducts();
@@ -248,7 +279,7 @@ export class CatalogListComponent implements OnInit {
         this.isSavingProduct.set(false);
         const msg = err?.error?.message || 'Error al guardar repuesto.';
         this.toast.show(Array.isArray(msg) ? msg.join(', ') : msg, 'error');
-      }
+      },
     });
   }
 }

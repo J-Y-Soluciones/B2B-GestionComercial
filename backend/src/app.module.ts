@@ -1,8 +1,10 @@
-// backend/src/app.module.ts
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+
+// ❌ Elimina la importación de APP_GUARD
+// import { APP_GUARD } from '@nestjs/core';
+
 import { PrismaModule } from './core/prisma/prisma.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { ProformasModule } from './modules/proformas/proformas.module.js';
@@ -35,9 +37,9 @@ import { DemoProtectionGuard } from './core/guards/demo-protection.guard.js';
   ],
   providers: [
     {
-      provide: APP_GUARD,
+      provide: 'APP_GUARD', // Usa el string directamente
       useClass: DemoProtectionGuard,
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

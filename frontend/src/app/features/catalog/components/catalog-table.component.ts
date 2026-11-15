@@ -18,7 +18,9 @@ export interface PreviewImageState {
       <!-- VISTA MÓVIL (< md): Cards compactas -->
       <div class="block md:hidden space-y-2.5">
         @if (products().length === 0 && !isLoading()) {
-          <div class="bg-white p-6 rounded-2xl border border-slate-200 text-center text-slate-400 text-xs shadow-2xs">
+          <div
+            class="bg-white p-6 rounded-2xl border border-slate-200 text-center text-slate-400 text-xs shadow-2xs"
+          >
             No se encontraron repuestos registrados con ese criterio.
           </div>
         }
@@ -27,12 +29,21 @@ export interface PreviewImageState {
           <div class="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs space-y-2.5">
             <div class="flex items-start justify-between gap-2.5">
               <div class="flex items-start gap-2.5 min-w-0">
-                <div class="relative group w-10 h-10 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                <div
+                  class="relative group w-10 h-10 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0"
+                >
                   @if (prod.imageUrl) {
-                    <img [src]="prod.imageUrl" [alt]="prod.name" class="w-full h-full object-cover" />
-                    <button type="button" (click)="openPreview(prod)"
+                    <img
+                      [src]="prod.imageUrl"
+                      [alt]="prod.name"
+                      class="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      (click)="openPreview(prod)"
                       class="absolute inset-0 bg-slate-900/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-xs font-bold"
-                      title="Ver imagen grande">
+                      title="Ver imagen grande"
+                    >
                       👁️
                     </button>
                   } @else {
@@ -41,52 +52,79 @@ export interface PreviewImageState {
                 </div>
                 <div class="min-w-0">
                   <div class="flex items-center gap-1.5 flex-wrap">
-                    <span [class]="getSkuBadgeColor(idx)" class="font-mono text-[9px] font-bold px-1.5 py-0.2 rounded border uppercase">
+                    <span
+                      [class]="getSkuBadgeColor(idx)"
+                      class="font-mono text-[9px] font-bold px-1.5 py-0.2 rounded border uppercase"
+                    >
                       {{ prod.internalCode }}
                     </span>
-                    <span class="text-[9px] font-mono text-slate-400 truncate">OEM: {{ getOemCode(prod) }}</span>
+                    <span class="text-[9px] font-mono text-slate-400 truncate"
+                      >OEM: {{ getOemCode(prod) }}</span
+                    >
                   </div>
-                  <h4 class="font-bold text-slate-900 text-xs truncate leading-snug mt-0.5">{{ prod.name }}</h4>
+                  <h4 class="font-bold text-slate-900 text-xs truncate leading-snug mt-0.5">
+                    {{ prod.name }}
+                  </h4>
                   <div class="text-[10px] text-slate-500 font-mono truncate">
-                    <strong class="text-slate-700">{{ prod.brand }}</strong> &bull; {{ prod.category }}
+                    <strong class="text-slate-700">{{ prod.brand }}</strong> &bull;
+                    {{ prod.category }}
                   </div>
                 </div>
               </div>
 
               <!-- Estado de Stock -->
-              <span [class]="getStockBadgeClass(prod)" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold border shrink-0">
+              <span
+                [class]="getStockBadgeClass(prod)"
+                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold border shrink-0"
+              >
                 <span class="w-1.5 h-1.5 rounded-full" [class]="getStockDotClass(prod)"></span>
                 {{ getStockLabel(prod) }}
               </span>
             </div>
 
             <!-- Matriz de Tiers -->
-            <div class="grid grid-cols-3 gap-1 bg-slate-50 p-2 rounded-xl border border-slate-100 font-mono text-[10px] text-center">
+            <div
+              class="grid grid-cols-3 gap-1 bg-slate-50 p-2 rounded-xl border border-slate-100 font-mono text-[10px] text-center"
+            >
               <div>
                 <span class="text-slate-400 block text-[9px]">T1 Mostrador</span>
-                <strong class="text-slate-900">S/ {{ getTierPrice(prod, 1) | number:'1.2-2' }}</strong>
+                <strong class="text-slate-900"
+                  >S/ {{ getTierPrice(prod, 1) | number: '1.2-2' }}</strong
+                >
               </div>
               <div class="border-x border-slate-200">
                 <span class="text-slate-400 block text-[9px]">T2 Taller</span>
-                <strong class="text-slate-900">S/ {{ getTierPrice(prod, 2) | number:'1.2-2' }}</strong>
+                <strong class="text-slate-900"
+                  >S/ {{ getTierPrice(prod, 2) | number: '1.2-2' }}</strong
+                >
               </div>
               <div>
                 <span class="text-emerald-800 block text-[9px]">T3 Mayor</span>
-                <strong class="text-emerald-950 font-black">S/ {{ getTierPrice(prod, 3) | number:'1.2-2' }}</strong>
+                <strong class="text-emerald-950 font-black"
+                  >S/ {{ getTierPrice(prod, 3) | number: '1.2-2' }}</strong
+                >
               </div>
             </div>
 
             <!-- Footer Card -->
-            <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px] font-mono text-slate-400">
+            <div
+              class="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px] font-mono text-slate-400"
+            >
               <span>{{ prod.stocks?.length || 0 }} proveedores</span>
               <div class="flex items-center gap-1.5">
-                <button type="button" (click)="openStock.emit(prod)"
-                  class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold cursor-pointer shadow-2xs">
+                <button
+                  type="button"
+                  (click)="openStock.emit(prod)"
+                  class="px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold cursor-pointer shadow-2xs"
+                >
                   📦 Lotes ({{ prod.stocks?.length || 0 }})
                 </button>
                 @if (canManage()) {
-                  <button type="button" (click)="openEdit.emit(prod)"
-                    class="p-1 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 cursor-pointer">
+                  <button
+                    type="button"
+                    (click)="openEdit.emit(prod)"
+                    class="p-1 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 cursor-pointer"
+                  >
                     ✏️
                   </button>
                 }
@@ -97,11 +135,15 @@ export interface PreviewImageState {
       </div>
 
       <!-- VISTA ESCRITORIO (>= md): Tabla Densificada -->
-      <div class="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden">
+      <div
+        class="hidden md:block bg-white rounded-2xl border border-slate-200 shadow-2xs overflow-hidden"
+      >
         <div class="overflow-x-auto w-full">
           <table class="w-full text-left text-xs border-collapse">
             <thead>
-              <tr class="border-b border-slate-200 bg-slate-50/70 text-slate-500 uppercase text-[9px] font-mono font-bold tracking-wider">
+              <tr
+                class="border-b border-slate-200 bg-slate-50/70 text-slate-500 uppercase text-[9px] font-mono font-bold tracking-wider"
+              >
                 <th class="py-3 px-3 text-center w-8">#</th>
                 <th class="py-3 px-4">SKU / Descripción & Marca</th>
                 <th class="py-3 px-4">Categoría / OEM</th>
@@ -123,32 +165,67 @@ export interface PreviewImageState {
               @for (prod of products(); track prod.id; let idx = $index) {
                 <tr class="hover:bg-slate-50/60 transition-colors">
                   <td class="py-3 px-3 text-center font-mono text-[11px] text-slate-400">
-                    {{ (idx + 1) < 10 ? '0' + (idx + 1) : (idx + 1) }}
+                    {{ idx + 1 < 10 ? '0' + (idx + 1) : idx + 1 }}
                   </td>
 
                   <td class="py-3 px-4">
                     <div class="flex items-center gap-2.5">
-                      <div class="relative group w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
+                      <div
+                        class="relative group w-9 h-9 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0"
+                      >
                         @if (prod.imageUrl) {
-                          <img [src]="prod.imageUrl" [alt]="prod.name" class="w-full h-full object-cover" />
-                          <button type="button" (click)="openPreview(prod)"
-                            class="absolute inset-0 bg-slate-900/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-xs"
-                            title="Ver imagen grande">
-                            👁️
-                          </button>
+                          <img
+                            [src]="prod.imageUrl"
+                            [alt]="prod.name"
+                            class="w-full h-full object-cover"
+                          />
                         } @else {
                           <span class="text-xs text-slate-300">📦</span>
                         }
                       </div>
                       <div>
                         <div class="flex items-center gap-1.5">
-                          <span [class]="getSkuBadgeColor(idx)" class="font-mono text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase">
+                          <!-- SKU Interno -->
+                          <span
+                            [class]="getSkuBadgeColor(idx)"
+                            class="font-mono text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase"
+                          >
                             {{ prod.internalCode }}
                           </span>
-                          <span class="font-bold text-slate-900 text-xs leading-tight">{{ prod.name }}</span>
+
+                          <!-- SEMÁFORO FISCAL -->
+                          @if (prod.isTaxable) {
+                            <span
+                              class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-50 text-emerald-800 border border-emerald-200"
+                              title="Producto comprado con factura (Facturable al cliente)"
+                            >
+                              🟢 Facturable
+                            </span>
+                          } @else {
+                            <span
+                              class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-rose-50 text-rose-800 border border-rose-200"
+                              title="Producto comprado sin factura (Venta interna)"
+                            >
+                              🔴 Sin Factura
+                            </span>
+                          }
+
+                          <span class="font-bold text-slate-900 text-xs leading-tight">{{
+                            prod.name
+                          }}</span>
                         </div>
-                        <div class="text-[11px] text-slate-500 mt-0.5 font-mono">
-                          <strong class="text-slate-700">{{ prod.brand }}</strong> &bull; Repuesto Original / Alterno
+
+                        <div
+                          class="text-[11px] text-slate-500 mt-0.5 font-mono flex items-center gap-2"
+                        >
+                          <span
+                            ><strong class="text-slate-700">{{ prod.brand }}</strong></span
+                          >
+                          @if (prod.barcode) {
+                            <span class="text-[10px] text-slate-400"
+                              >||| EAN: {{ prod.barcode }}</span
+                            >
+                          }
                         </div>
                       </div>
                     </div>
@@ -156,45 +233,78 @@ export interface PreviewImageState {
 
                   <td class="py-3 px-4">
                     <div class="text-slate-800 font-medium text-[11px]">{{ prod.category }}</div>
-                    <div class="text-[10px] font-mono text-slate-400 mt-0.5">OEM: {{ getOemCode(prod) }}</div>
+                    <div class="text-[10px] font-mono text-slate-400 mt-0.5">
+                      OEM: {{ getOemCode(prod) }}
+                    </div>
                   </td>
 
                   <td class="py-3 px-4 text-center">
                     <div class="inline-flex items-center gap-1 font-mono text-[10px]">
-                      <span class="bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded text-slate-600">
-                        T1: <strong class="text-slate-900">S/ {{ getTierPrice(prod, 1) | number:'1.2-2' }}</strong>
+                      <span
+                        class="bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded text-slate-600"
+                      >
+                        T1:
+                        <strong class="text-slate-900"
+                          >S/ {{ getTierPrice(prod, 1) | number: '1.2-2' }}</strong
+                        >
                       </span>
-                      <span class="bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded text-slate-600">
-                        T2: <strong class="text-slate-900">S/ {{ getTierPrice(prod, 2) | number:'1.2-2' }}</strong>
+                      <span
+                        class="bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded text-slate-600"
+                      >
+                        T2:
+                        <strong class="text-slate-900"
+                          >S/ {{ getTierPrice(prod, 2) | number: '1.2-2' }}</strong
+                        >
                       </span>
-                      <span class="bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded text-emerald-900 font-bold">
-                        T3: <strong class="text-emerald-950">S/ {{ getTierPrice(prod, 3) | number:'1.2-2' }}</strong>
+                      <span
+                        class="bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded text-emerald-900 font-bold"
+                      >
+                        T3:
+                        <strong class="text-emerald-950"
+                          >S/ {{ getTierPrice(prod, 3) | number: '1.2-2' }}</strong
+                        >
                       </span>
                     </div>
                   </td>
 
                   <td class="py-3 px-4 text-center">
-                    <div class="font-mono font-black text-xs text-slate-900">{{ prod.totalStock }} un</div>
-                    <div class="text-[10px] text-slate-400 font-mono">{{ prod.stocks?.length || 0 }} lotes</div>
+                    <div class="font-mono font-black text-xs text-slate-900">
+                      {{ prod.totalStock }} un
+                    </div>
+                    <div class="text-[10px] text-slate-400 font-mono">
+                      {{ prod.stocks?.length || 0 }} lotes
+                    </div>
                   </td>
 
                   <td class="py-3 px-4 text-center">
-                    <span [class]="getStockBadgeClass(prod)" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border">
-                      <span class="w-1.5 h-1.5 rounded-full" [class]="getStockDotClass(prod)"></span>
+                    <span
+                      [class]="getStockBadgeClass(prod)"
+                      class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border"
+                    >
+                      <span
+                        class="w-1.5 h-1.5 rounded-full"
+                        [class]="getStockDotClass(prod)"
+                      ></span>
                       {{ getStockLabel(prod) }}
                     </span>
                   </td>
 
                   <td class="py-3 px-4 text-center">
                     <div class="inline-flex items-center gap-1.5">
-                      <button type="button" (click)="openStock.emit(prod)"
-                        class="px-2 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-mono text-[11px] font-semibold cursor-pointer shadow-2xs whitespace-nowrap">
+                      <button
+                        type="button"
+                        (click)="openStock.emit(prod)"
+                        class="px-2 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-mono text-[11px] font-semibold cursor-pointer shadow-2xs whitespace-nowrap"
+                      >
                         📦 Lotes ({{ prod.stocks?.length || 0 }})
                       </button>
                       @if (canManage()) {
-                        <button type="button" (click)="openEdit.emit(prod)"
+                        <button
+                          type="button"
+                          (click)="openEdit.emit(prod)"
                           class="p-1 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 cursor-pointer"
-                          title="Editar Ficha Técnica">
+                          title="Editar Ficha Técnica"
+                        >
                           ✏️
                         </button>
                       }
@@ -209,34 +319,48 @@ export interface PreviewImageState {
 
       <!-- MODAL LIGHTBOX / VISOR IMAGEN GRANDE -->
       @if (previewState(); as item) {
-        <div class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in"
-             (click)="closePreview()">
-          <div class="relative bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden"
-               (click)="$event.stopPropagation()">
-            
+        <div
+          class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in"
+          (click)="closePreview()"
+        >
+          <div
+            class="relative bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full overflow-hidden"
+            (click)="$event.stopPropagation()"
+          >
             <!-- Barra Superior del Modal -->
-            <div class="p-3 px-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+            <div
+              class="p-3 px-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between"
+            >
               <div class="min-w-0">
-                <span class="font-mono text-[9px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">
+                <span
+                  class="font-mono text-[9px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded"
+                >
                   {{ item.sku }}
                 </span>
                 <h4 class="text-xs font-bold text-slate-900 truncate mt-0.5">{{ item.name }}</h4>
               </div>
-              <button type="button" (click)="closePreview()"
-                class="text-slate-400 hover:text-slate-700 font-bold text-lg cursor-pointer px-2 leading-none">
+              <button
+                type="button"
+                (click)="closePreview()"
+                class="text-slate-400 hover:text-slate-700 font-bold text-lg cursor-pointer px-2 leading-none"
+              >
                 &times;
               </button>
             </div>
 
             <!-- Imagen en Alta Definición -->
             <div class="p-3 bg-slate-100/50 flex items-center justify-center">
-              <img [src]="item.url" [alt]="item.name" class="max-h-[70vh] w-auto object-contain rounded-xl shadow-xs" />
+              <img
+                [src]="item.url"
+                [alt]="item.name"
+                class="max-h-[70vh] w-auto object-contain rounded-xl shadow-xs"
+              />
             </div>
           </div>
         </div>
       }
     </div>
-  `
+  `,
 })
 export class CatalogTableComponent {
   products = input.required<Product[]>();
@@ -258,7 +382,7 @@ export class CatalogTableComponent {
     this.previewState.set({
       url: prod.imageUrl,
       name: prod.name,
-      sku: prod.internalCode
+      sku: prod.internalCode,
     });
   }
 
@@ -276,7 +400,7 @@ export class CatalogTableComponent {
       'bg-blue-50 text-blue-800 border-blue-200',
       'bg-amber-50 text-amber-800 border-amber-200',
       'bg-emerald-50 text-emerald-800 border-emerald-200',
-      'bg-purple-50 text-purple-800 border-purple-200'
+      'bg-purple-50 text-purple-800 border-purple-200',
     ];
     return colors[idx % colors.length];
   }

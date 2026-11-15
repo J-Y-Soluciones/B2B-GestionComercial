@@ -1,8 +1,13 @@
 // backend/src/modules/products/application/services/product.service.ts
-import { Injectable, Inject, NotFoundException, ConflictException } from '@nestjs/common';
 import {
-    PRODUCT_REPOSITORY_TOKEN,
-    type IProductRepository,
+  Injectable,
+  Inject,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
+import {
+  PRODUCT_REPOSITORY_TOKEN,
+  type IProductRepository,
 } from '../../domain/repositories/product.repository.interface.js';
 import type { ProductEntity } from '../../domain/entities/product.entity.js';
 import type { CreateProductDto } from '../dtos/create-product.dto.js';
@@ -12,88 +17,140 @@ import type { SearchProductDto } from '../dtos/search-product.dto.js';
 
 @Injectable()
 export class ProductService {
-    constructor(
-        @Inject(PRODUCT_REPOSITORY_TOKEN)
-        private readonly productRepository: IProductRepository,
-    ) { }
+  constructor(
+    @Inject(PRODUCT_REPOSITORY_TOKEN)
+    private readonly productRepository: IProductRepository,
+  ) {}
 
-    async findById(id: string): Promise<ProductEntity> {
-        const product = await this.productRepository.findById(id);
-        if (!product) {
-            throw new NotFoundException(`Producto con ID ${id} no encontrado`);
-        }
-        return product;
+  async findById(id: string): Promise<ProductEntity> {
+    const product = await this.productRepository.findById(id);
+    if (!product) {
+      throw new NotFoundException(`Producto con ID ${id} no encontrado`);
+    }
+    return product;
+  }
+
+  async findByInternalCode(internalCode: string): Promise<ProductEntity> {
+    const product =
+      await this.productRepository.findByInternalCode(internalCode);
+    if (!product) {
+      throw new NotFoundException(
+        `Producto con código interno ${internalCode} no encontrado`,
+      );
+    }
+    return product;
+  }
+
+  async search(
+    filters: SearchProductDto,
+    limit = 20,
+  ): Promise<ProductEntity[]> {
+    const queryClean = filters.query?.trim() || undefined;
+
+    return this.productRepository.search({
+      query: queryClean,
+      category: filters.category?.trim() || undefined,
+      brand: filters.brand?.trim() || undefined,
+      inStock: filters.inStock,
+      limit,
+    });
+  }
+
+  async create(dto: CreateProductDto): Promise<ProductEntity> {
+    const existing = await this.productRepository.findByInternalCode(
+      dto.internalCode,
+    );
+    if (existing) {
+      throw new ConflictException(
+        `Ya existe un repuesto con el código interno ${dto.internalCode}`,
+      );
     }
 
-    async findByInternalCode(internalCode: string): Promise<ProductEntity> {
-        const product = await this.productRepository.findByInternalCode(internalCode);
-        if (!product) {
-            throw new NotFoundException(`Producto con código interno ${internalCode} no encontrado`);
-        }
-        return product;
+    if (dto.barcode) {
+      const existingBarcode = await this.productRepository.findByBarcode(
+        dto.barcode,
+      );
+      if (existingBarcode) {
+        throw new ConflictException(
+          `Ya existe un repuesto con el código de barras ${dto.barcode}`,
+        );
+      }
     }
 
-    async search(filters: SearchProductDto, limit = 20): Promise<ProductEntity[]> {
-        const queryClean = filters.query?.trim() || undefined;
+    return this.productRepository.create({
+      internalCode: dto.internalCode,
+      barcode: dto.barcode ?? null,
+      isTaxable: dto.isTaxable ?? true,
+      name: dto.name,
+      category: dto.category,
+      brand: dto.brand,
+      imageUrl: dto.imageUrl ?? null,
+      minStock: dto.minStock ?? 5,
+      isActive: dto.isActive ?? true,
+      priceTiers: dto.priceTiers,
+      stocks: dto.stocks ?? [],
+    });
+  }
 
-        return this.productRepository.search({
-            query: queryClean,
-            category: filters.category?.trim() || undefined,
-            brand: filters.brand?.trim() || undefined,
-            inStock: filters.inStock,
-            limit,
-        });
+  async update(id: string, dto: UpdateProductDto): Promise<ProductEntity> {
+    await this.findById(id);
+
+    if (dto.internalCode) {
+      const duplicate = await this.productRepository.findByInternalCode(
+        dto.internalCode,
+      );
+      if (duplicate && duplicate.id !== id) {
+        throw new ConflictException(
+          `El código ${dto.internalCode} ya está asignado a otro repuesto`,
+        );
+      }
     }
 
-    async create(dto: CreateProductDto): Promise<ProductEntity> {
-        const existing = await this.productRepository.findByInternalCode(dto.internalCode);
-        if (existing) {
-            throw new ConflictException(`Ya existe un repuesto con el código interno ${dto.internalCode}`);
-        }
-
-        return this.productRepository.create({
-            internalCode: dto.internalCode,
-            name: dto.name,
-            category: dto.category,
-            brand: dto.brand,
-            imageUrl: dto.imageUrl ?? null,
-            minStock: dto.minStock ?? 5,
-            isActive: dto.isActive ?? true,
-            priceTiers: dto.priceTiers,
-            stocks: dto.stocks ?? [],
-        });
+    if (dto.barcode) {
+      const duplicateBarcode = await this.productRepository.findByBarcode(
+        dto.barcode,
+      );
+      if (duplicateBarcode && duplicateBarcode.id !== id) {
+        throw new ConflictException(
+          `El código de barras ${dto.barcode} ya está asignado a otro repuesto`,
+        );
+      }
     }
 
-    async update(id: string, dto: UpdateProductDto): Promise<ProductEntity> {
-        await this.findById(id);
+    return this.productRepository.update(id, {
+      ...(dto.internalCode !== undefined && { internalCode: dto.internalCode }),
+      ...(dto.barcode !== undefined && { barcode: dto.barcode || null }),
+      ...(dto.isTaxable !== undefined && { isTaxable: dto.isTaxable }),
+      ...(dto.name !== undefined && { name: dto.name }),
+      ...(dto.category !== undefined && { category: dto.category }),
+      ...(dto.brand !== undefined && { brand: dto.brand }),
+      ...(dto.imageUrl !== undefined && { imageUrl: dto.imageUrl }),
+      ...(dto.minStock !== undefined && { minStock: dto.minStock }),
+      ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+      ...(dto.priceTiers !== undefined && { priceTiers: dto.priceTiers }),
+    });
+  }
 
-        if (dto.internalCode) {
-            const duplicate = await this.productRepository.findByInternalCode(dto.internalCode);
-            if (duplicate && duplicate.id !== id) {
-                throw new ConflictException(
-                    `El código ${dto.internalCode} ya está asignado a otro repuesto`,
-                );
-            }
-        }
+  async setSupplierStock(
+    id: string,
+    dto: SetSupplierStockDto,
+  ): Promise<ProductEntity> {
+    await this.findById(id);
+    return this.productRepository.upsertSupplierStock(id, {
+      supplierId: dto.supplierId,
+      supplierSku: dto.supplierSku ?? null,
+      stock: dto.stock,
+      costPrice: dto.costPrice,
+    });
+  }
 
-        return this.productRepository.update(id, {
-            ...(dto.internalCode !== undefined && { internalCode: dto.internalCode }),
-            ...(dto.name !== undefined && { name: dto.name }),
-            ...(dto.category !== undefined && { category: dto.category }),
-            ...(dto.brand !== undefined && { brand: dto.brand }),
-            ...(dto.imageUrl !== undefined && { imageUrl: dto.imageUrl }),
-            ...(dto.minStock !== undefined && { minStock: dto.minStock }),
-            ...(dto.isActive !== undefined && { isActive: dto.isActive }),
-            ...(dto.priceTiers !== undefined && { priceTiers: dto.priceTiers }),
-        });
+  async findByBarcode(barcode: string): Promise<ProductEntity> {
+    const product = await this.productRepository.findByBarcode(barcode);
+    if (!product) {
+      throw new NotFoundException(
+        `Producto con código de barras ${barcode} no encontrado`,
+      );
     }
-    async setSupplierStock(id: string, dto: SetSupplierStockDto): Promise<ProductEntity> {
-        await this.findById(id);
-        return this.productRepository.upsertSupplierStock(id, {
-            supplierId: dto.supplierId,
-            supplierSku: dto.supplierSku ?? null,
-            stock: dto.stock,
-            costPrice: dto.costPrice,
-        });
-    }
+    return product;
+  }
 }
