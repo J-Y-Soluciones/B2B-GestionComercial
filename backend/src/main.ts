@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module.js';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import helmet from 'helmet';
+import { AppModule } from './app.module.js';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -10,7 +10,10 @@ async function bootstrap() {
   app.use(helmet());
 
   app.enableCors({
-    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
       if (!origin) return callback(null, true);
 
       if (origin.includes('localhost') || origin.endsWith('.vercel.app')) {
@@ -30,7 +33,7 @@ async function bootstrap() {
     }),
   );
 
-  const PORT = process.env.PORT || 3000;
+  const PORT = process.env['PORT'] || 3000;
   await app.listen(PORT, '0.0.0.0');
   logger.log(`Servidor escuchando en: http://localhost:${PORT}`);
 }

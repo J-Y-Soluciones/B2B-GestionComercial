@@ -3,21 +3,23 @@ import type { PriceTierEntity } from './price-tier.entity.js';
 import type { SupplierStockEntity } from './supplier-stock.entity.js';
 
 export class ProductEntity {
-    id: string;
-    internalCode: string;
-    name: string;
-    category: string;
-    brand: string;
-    imageUrl?: string | null;
-    minStock: number;
-    isActive: boolean;
-    totalStock: number;
-    priceTiers: PriceTierEntity[];
-    stocks: SupplierStockEntity[];
-    createdAt: Date;
-    updatedAt: Date;
+  id: string;
+  internalCode: string;
+  barcode?: string | null; // EAN-9 / EAN-13 para lectura por escáner
+  name: string;
+  category: string;
+  brand: string;
+  imageUrl?: string | null;
+  minStock: number;
+  isActive: boolean;
+  isTaxable: boolean; // Semáforo fiscal (true: 🟢 Facturable, false: 🔴 Sin Factura)
+  totalStock: number;
+  priceTiers: PriceTierEntity[];
+  stocks: SupplierStockEntity[];
+  createdAt: Date;
+  updatedAt: Date;
 
-    constructor(partial: Partial<ProductEntity>) {
-        Object.assign(this, partial);
-    }
+  constructor(partial: Partial<ProductEntity>) {
+    Object.assign(this, partial);
+  }
 }

@@ -93,22 +93,28 @@ model Customer {
 model Product {
   id           String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   internalCode String                 @unique @db.VarChar(50)
+  barcode      String?                @unique @db.VarChar(50) // <--- CÓDIGO EAN / BARRAS
   name         String                 @db.VarChar(255)
   category     String                 @db.VarChar(100)
   brand        String                 @db.VarChar(100)
   imageUrl     String?                @db.Text
   minStock     Int                    @default(5)
   isActive     Boolean                @default(true)
-  priceTiers   PriceTier[]
-  details      ProformaDetail[]
-  stocks       SupplierProductStock[]
-  saleDetails  SaleDetail[]
-  createdAt    DateTime               @default(now()) @db.Timestamptz(6)
-  updatedAt    DateTime               @updatedAt @db.Timestamptz(6)
+  isTaxable    Boolean                @default(true) // <--- SEMÁFORO FISCAL (true: 🟢 Facturable, false: 🔴 Sin Factura)
+  
+  priceTiers    PriceTier[]
+  quantityTiers ProductQuantityTier[] // <--- ESCALONES POR VOLUMEN
+  details       ProformaDetail[]
+  stocks        SupplierProductStock[]
+  saleDetails   SaleDetail[]
+  createdAt     DateTime               @default(now()) @db.Timestamptz(6)
+  updatedAt     DateTime               @updatedAt @db.Timestamptz(6)
 
   @@index([internalCode])
+  @@index([barcode])
   @@index([category])
   @@index([brand])
+  @@index([isTaxable])
 }
 
 model Supplier {
@@ -128,20 +134,35 @@ model Supplier {
 }
 
 model SupplierProductStock {
-  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  productId   String    @db.Uuid
-  supplierId  String    @db.Uuid
-  supplierSku String?   @db.VarChar(100) // Código de parte del proveedor
-  stock       Int       @default(0)
-  costPrice   Decimal   @db.Decimal(12, 2)
-  updatedAt   DateTime  @updatedAt @db.Timestamptz(6)
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId      String    @db.Uuid
+  supplierId     String    @db.Uuid
+  supplierSku    String?   @db.VarChar(100)
+  stock          Int       @default(0) // Stock comercial disponible para venta
+  guaranteeStock Int       @default(0) // <--- STOCK EN GARANTÍA (Retenido / Falla de fábrica)
+  costPrice      Decimal   @db.Decimal(12, 2)
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(6)
 
-  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
-  supplier    Supplier  @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  product        Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  supplier       Supplier  @relation(fields: [supplierId], references: [id], onDelete: Cascade)
 
   @@unique([productId, supplierId])
   @@index([productId])
   @@index([supplierId])
+}
+
+model ProductQuantityTier {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  productId   String   @db.Uuid
+  minQuantity Int
+  maxQuantity Int?     // Null indica "en adelante" (ej. 50 a más)
+  tierPrice   Decimal  @db.Decimal(12, 2)
+  isActive    Boolean  @default(true) // Switch On/Off para la promoción
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
 }
 
 model PriceTier {
