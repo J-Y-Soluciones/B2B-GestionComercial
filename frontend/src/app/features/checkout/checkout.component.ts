@@ -1,5 +1,14 @@
 // src/app/features/checkout/checkout.component.ts
-import { Component, OnInit, inject, signal, computed, HostListener, ChangeDetectionStrategy, viewChild } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  inject,
+  signal,
+  computed,
+  HostListener,
+  ChangeDetectionStrategy,
+  viewChild,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SalesApiService } from '../../core/api/sales-api.service';
@@ -8,7 +17,10 @@ import { ToastService } from '../../core/services/toast.service';
 import { CheckoutHeaderComponent } from './components/checkout-header.component';
 import { CheckoutProformaPickerComponent } from './components/checkout-proforma-picker.component';
 import { CheckoutCustomerCardComponent } from './components/checkout-customer-card.component';
-import { CheckoutItemsTableComponent, type CheckoutTableItem } from './components/checkout-items-table.component';
+import {
+  CheckoutItemsTableComponent,
+  type CheckoutTableItem,
+} from './components/checkout-items-table.component';
 import { CheckoutTotalsComponent } from './components/checkout-totals.component';
 import { CheckoutPaymentFormComponent } from './components/checkout-payment-form.component';
 import { CheckoutCustomerPickerModalComponent } from './components/checkout-customer-picker-modal.component';
@@ -26,7 +38,7 @@ import type { Customer } from '../../core/models/customer.model';
     CheckoutItemsTableComponent,
     CheckoutTotalsComponent,
     CheckoutPaymentFormComponent,
-    CheckoutCustomerPickerModalComponent
+    CheckoutCustomerPickerModalComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -35,7 +47,8 @@ import type { Customer } from '../../core/models/customer.model';
         [hasActiveProforma]="!!proformaId()"
         (discard)="showDiscardModal.set(true)"
         (openPicker)="openPicker()"
-        (returnToProformas)="returnToProformas()" />
+        (returnToProformas)="returnToProformas()"
+      />
 
       @if (proformaId()) {
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -47,32 +60,42 @@ import type { Customer } from '../../core/models/customer.model';
               [customerName]="customerName()"
               [documentNumber]="documentNumber()"
               [customerAddress]="customerAddress()"
-              (openCustomerSearch)="showCustomerPicker.set(true)" />
+              (openCustomerSearch)="showCustomerPicker.set(true)"
+            />
 
-            <!-- Modal Reasignar Cliente -->
             @if (showCustomerPicker()) {
               <app-checkout-customer-picker-modal
                 (close)="showCustomerPicker.set(false)"
-                (customerSelected)="onCustomerReassigned($event)" />
+                (customerSelected)="onCustomerReassigned($event)"
+              />
             }
 
-            <app-checkout-items-table [items]="items()" (supplierChanged)="onSupplierChange($event)" />
+            <app-checkout-items-table
+              [items]="items()"
+              (supplierChanged)="onSupplierChange($event)"
+            />
             <app-checkout-totals [total]="totalAmount()" />
           </div>
 
           <div class="lg:col-span-4">
             <app-checkout-payment-form
-            [totalAmount]="totalAmount()"
-            [customerDocument]="documentNumber()"
-            [sunatEnabled]="sunatEnabled()"
-            [hasStockError]="hasStockDeficit()"
-            [isSubmitting]="isSubmitting()"
-            (toggleSunat)="toggleSunatState()"
-            (submitPayment)="processSale($event)" />
+              [totalAmount]="totalAmount()"
+              [taxableTotal]="taxableTotal()"
+              [nonTaxableTotal]="nonTaxableTotal()"
+              [customerDocument]="documentNumber()"
+              [sunatEnabled]="sunatEnabled()"
+              [hasStockError]="hasStockDeficit()"
+              [isSubmitting]="isSubmitting()"
+              (toggleSunat)="toggleSunatState()"
+              (submitPayment)="processSale($event)"
+            />
           </div>
         </div>
       } @else {
-        <app-checkout-proforma-picker [proformas]="availableProformas()" (selectProforma)="onSelectProforma($event)" />
+        <app-checkout-proforma-picker
+          [proformas]="availableProformas()"
+          (selectProforma)="onSelectProforma($event)"
+        />
       }
 
       @if (showModal()) {
@@ -80,14 +103,21 @@ import type { Customer } from '../../core/models/customer.model';
           [proformas]="availableProformas()"
           [isModal]="true"
           (selectProforma)="onSelectProforma($event)"
-          (closeModal)="showModal.set(false)" />
+          (closeModal)="showModal.set(false)"
+        />
       }
 
-      <!-- Modal de Confirmación Estilizado -->
+      <!-- Modal de Confirmación de Descarte -->
       @if (showDiscardModal()) {
-        <div class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div class="bg-white rounded-2xl max-w-sm w-full p-5 sm:p-6 shadow-2xl border border-slate-100 text-center space-y-3.5 animate-in fade-in zoom-in-95 my-auto">
-            <div class="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto text-xl font-bold">
+        <div
+          class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+        >
+          <div
+            class="bg-white rounded-2xl max-w-sm w-full p-5 sm:p-6 shadow-2xl border border-slate-100 text-center space-y-3.5 animate-in fade-in zoom-in-95 my-auto"
+          >
+            <div
+              class="w-12 h-12 rounded-full bg-rose-50 text-rose-600 flex items-center justify-center mx-auto text-xl font-bold"
+            >
               ⚠
             </div>
             <div>
@@ -97,20 +127,95 @@ import type { Customer } from '../../core/models/customer.model';
               </p>
             </div>
             <div class="flex gap-2 pt-1">
-              <button type="button" (click)="showDiscardModal.set(false)"
-                      class="flex-1 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer">
+              <button
+                type="button"
+                (click)="showDiscardModal.set(false)"
+                class="flex-1 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
+              >
                 Continuar Venta
               </button>
-              <button type="button" (click)="confirmDiscard()"
-                      class="flex-1 py-2 text-xs font-bold text-white bg-rose-700 hover:bg-rose-800 rounded-lg shadow-2xs transition-colors cursor-pointer">
+              <button
+                type="button"
+                (click)="confirmDiscard()"
+                class="flex-1 py-2 text-xs font-bold text-white bg-rose-700 hover:bg-rose-800 rounded-lg shadow-2xs transition-colors cursor-pointer"
+              >
                 Sí, Descartar
               </button>
             </div>
           </div>
         </div>
       }
+
+      <!-- Modal Resumen de Comprobantes Divididos (Orden Mixta 🟢 + 🔴) -->
+      @if (splitResultModal(); as splitData) {
+        <div
+          class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+        >
+          <div
+            class="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 my-auto"
+          >
+            <div class="text-center space-y-1">
+              <div
+                class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center mx-auto text-xl font-bold"
+              >
+                ✓
+              </div>
+              <h3 class="text-sm font-extrabold text-slate-900">
+                ¡Orden Mixta Procesada con Éxito!
+              </h3>
+              <p class="text-xs text-slate-500">
+                Se separaron automáticamente los productos facturables de los sin factura en 2
+                comprobantes:
+              </p>
+            </div>
+
+            <div class="space-y-2.5 text-xs">
+              <!-- Comprobante 1: Fiscal -->
+              <div class="p-3 rounded-xl bg-emerald-50/70 border border-emerald-200 space-y-1">
+                <div class="flex items-center justify-between">
+                  <span class="font-mono font-bold text-emerald-900"
+                    >🟢 {{ splitData.primary.invoice?.type }} ({{
+                      splitData.primary.invoice?.fullCode
+                    }})</span
+                  >
+                  <span class="font-mono font-black text-emerald-950"
+                    >S/ {{ splitData.primary.totalAmount | number: '1.2-2' }}</span
+                  >
+                </div>
+                <p class="text-[11px] text-emerald-800 font-mono">
+                  Venta: {{ splitData.primary.code }} &bull; SUNAT:
+                  {{ splitData.primary.invoice?.status }}
+                </p>
+              </div>
+
+              <!-- Comprobante 2: Interno -->
+              <div class="p-3 rounded-xl bg-rose-50/60 border border-rose-200 space-y-1">
+                <div class="flex items-center justify-between">
+                  <span class="font-mono font-bold text-rose-900"
+                    >🔴 NOTA_VENTA ({{ splitData.internal.invoice?.fullCode }})</span
+                  >
+                  <span class="font-mono font-black text-rose-950"
+                    >S/ {{ splitData.internal.totalAmount | number: '1.2-2' }}</span
+                  >
+                </div>
+                <p class="text-[11px] text-rose-800 font-mono">
+                  Venta: {{ splitData.internal.code }} &bull; Control Interno (Sin envío SUNAT)
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              (click)="closeSplitModalAndGoToSales()"
+              class="w-full py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs rounded-xl shadow-2xs transition-colors cursor-pointer"
+            >
+              Ir al Historial de Ventas &rarr;
+            </button>
+          </div>
+        </div>
+      }
     </div>
-  `
+  `,
 })
 export class CheckoutComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
@@ -136,6 +241,21 @@ export class CheckoutComponent implements OnInit {
   showModal = signal<boolean>(false);
   showDiscardModal = signal<boolean>(false);
   showCustomerPicker = signal<boolean>(false);
+  splitResultModal = signal<{ primary: any; internal: any } | null>(null);
+
+  taxableTotal = computed(() => {
+    const sum = this.items()
+      .filter((i) => i.isTaxable)
+      .reduce((acc, i) => acc + i.subtotal, 0);
+    return Number(sum.toFixed(2));
+  });
+
+  nonTaxableTotal = computed(() => {
+    const sum = this.items()
+      .filter((i) => !i.isTaxable)
+      .reduce((acc, i) => acc + i.subtotal, 0);
+    return Number(sum.toFixed(2));
+  });
 
   ngOnInit(): void {
     this.loadReadyProformas();
@@ -150,8 +270,8 @@ export class CheckoutComponent implements OnInit {
         .map((p: any) => {
           if (p.details && p.details.length > 0) {
             const realTotal = p.details.reduce(
-              (acc: number, d: any) => acc + (Number(d.quantity) * Number(d.unitPrice)),
-              0
+              (acc: number, d: any) => acc + Number(d.quantity) * Number(d.unitPrice),
+              0,
             );
             return { ...p, totalAmount: Number(realTotal.toFixed(2)) };
           }
@@ -169,7 +289,6 @@ export class CheckoutComponent implements OnInit {
     });
   });
 
-  // En checkout.component.ts -> onSelectProforma
   onSelectProforma(id: string): void {
     this.proformaId.set(id);
     this.showModal.set(false);
@@ -188,26 +307,30 @@ export class CheckoutComponent implements OnInit {
           const price = Number(d.unitPrice);
           const lineSubtotal = Number((qty * price).toFixed(2));
 
-          const realSuppliers: { id: string; name: string; stock: number }[] = (d.product?.stocks || []).map((st: any) => ({
+          const realSuppliers: { id: string; name: string; stock: number }[] = (
+            d.product?.stocks || []
+          ).map((st: any) => ({
             id: st.supplierId,
             name: st.supplier?.name || 'Proveedor General',
-            stock: Number(st.stock || 0)
+            stock: Number(st.stock || 0),
           }));
 
-          const savedSupplier = realSuppliers.find(s => s.id === d.supplierId);
-          const selectedSupplier = savedSupplier || realSuppliers.find(s => s.stock >= qty) || realSuppliers[0];
+          const savedSupplier = realSuppliers.find((s) => s.id === d.supplierId);
+          const selectedSupplier =
+            savedSupplier || realSuppliers.find((s) => s.stock >= qty) || realSuppliers[0];
 
           return {
             productId: d.productId,
             code: d.product?.internalCode || 'SKU',
             name: d.product?.name || 'Repuesto',
             brand: d.product?.brand || 'Genérico',
+            isTaxable: d.product?.isTaxable ?? true,
             quantity: qty,
             unitPrice: price,
             priceTier: d.priceTier,
             subtotal: lineSubtotal,
             supplierId: selectedSupplier ? selectedSupplier.id : '',
-            availableSuppliers: realSuppliers
+            availableSuppliers: realSuppliers,
           };
         });
 
@@ -216,11 +339,10 @@ export class CheckoutComponent implements OnInit {
         const calculatedTotal = mappedItems.reduce((acc, item) => acc + item.subtotal, 0);
         this.totalAmount.set(Number(calculatedTotal.toFixed(2)));
       },
-      error: () => this.toast.show('Error al cargar la proforma.', 'error')
+      error: () => this.toast.show('Error al cargar la proforma.', 'error'),
     });
   }
 
-  // Manejador invocado al seleccionar o registrar un cliente desde el modal
   onCustomerReassigned(customer: Customer): void {
     this.customerId.set(customer.id);
     this.customerName.set(customer.name);
@@ -241,8 +363,11 @@ export class CheckoutComponent implements OnInit {
         this.clearCheckoutView();
       },
       error: (err) => {
-        this.toast.show(err.error?.message || 'No se pudo descartar la proforma en el servidor.', 'error');
-      }
+        this.toast.show(
+          err.error?.message || 'No se pudo descartar la proforma en el servidor.',
+          'error',
+        );
+      },
     });
   }
 
@@ -260,32 +385,47 @@ export class CheckoutComponent implements OnInit {
 
   onSupplierChange(ev: { productId: string; supplierId: string }): void {
     this.items.update((list) =>
-      list.map((i) => (i.productId === ev.productId ? { ...i, supplierId: ev.supplierId } : i))
+      list.map((i) => (i.productId === ev.productId ? { ...i, supplierId: ev.supplierId } : i)),
     );
   }
 
   toggleSunatState(): void {
     this.sunatEnabled.update((v) => !v);
-    this.toast.show(`Modo SUNAT ${this.sunatEnabled() ? 'Activado' : 'Desactivado (Boleta Simple)'}`, 'info');
+    this.toast.show(
+      `Modo SUNAT / NubeFact ${this.sunatEnabled() ? 'Activado' : 'Desactivado (Ticket Interno)'}`,
+      'info',
+    );
   }
 
   @HostListener('window:keydown', ['$event'])
   handleKey(e: KeyboardEvent): void {
     if (e.key === 'Escape') {
+      if (this.splitResultModal()) {
+        this.closeSplitModalAndGoToSales();
+        return;
+      }
       this.returnToProformas();
     } else if (e.key === 'F8') {
       e.preventDefault();
-      // Si el modal de búsqueda o el modal de descarte están abiertos, no procesar venta
-      if (this.showCustomerPicker() || this.showDiscardModal() || this.showModal()) {
+      if (
+        this.showCustomerPicker() ||
+        this.showDiscardModal() ||
+        this.showModal() ||
+        this.splitResultModal()
+      ) {
         return;
       }
-      // Ejecuta el submit del formulario hijo directamente
       this.paymentForm()?.onProcessSale();
     }
   }
 
   returnToProformas(): void {
     this.router.navigate(['/proformas']);
+  }
+
+  closeSplitModalAndGoToSales(): void {
+    this.splitResultModal.set(null);
+    this.router.navigate(['/sales']);
   }
 
   processSale(payment: {
@@ -305,7 +445,7 @@ export class CheckoutComponent implements OnInit {
         supplierId: i.supplierId,
         quantity: i.quantity,
         unitPrice: i.unitPrice,
-        priceTier: i.priceTier
+        priceTier: i.priceTier,
       })),
       payments: [
         {
@@ -313,21 +453,28 @@ export class CheckoutComponent implements OnInit {
           amount: this.totalAmount(),
           receivedAmount: payment.receivedAmount,
           changeAmount: payment.changeAmount,
-          operationCode: payment.operationCode
-        }
-      ]
+          operationCode: payment.operationCode,
+        },
+      ],
     };
 
     this.salesApi.createSale(payload).subscribe({
-      next: (sale) => {
+      next: (sale: any) => {
         this.isSubmitting.set(false);
+        if (sale.wasSplit && sale.splitInternalSale) {
+          this.splitResultModal.set({
+            primary: sale,
+            internal: sale.splitInternalSale,
+          });
+          return;
+        }
         this.toast.show(`Venta ${sale.code} emitida exitosamente.`, 'success');
         this.router.navigate(['/sales']);
       },
       error: (err) => {
         this.isSubmitting.set(false);
         this.toast.show(err.error?.message || 'Error al procesar la venta', 'error');
-      }
+      },
     });
   }
 }
